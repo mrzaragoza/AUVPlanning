@@ -17,6 +17,7 @@ Una vez esté instalado OMPL.app, comprobar que con éste se han instalado las s
 El directorio está dividido en las carpetas /src, /includes y /resources.
 
 Cuando esté todo instalado:
+
 Descargar el código del repositorio
 ```sh
 $ git clone git@github.com:mrzaragoza/AUVPlanning.git
