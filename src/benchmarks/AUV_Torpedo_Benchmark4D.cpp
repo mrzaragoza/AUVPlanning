@@ -1,6 +1,7 @@
 //#include "kinematicTest.h"
 #include <ompl/tools/benchmark/Benchmark.h>
-#include <ompl/control/planners/rrt/RRT.h>
+#include <planners/RRT.h>
+//#include <ompl/control/planners/rrt/RRT.h>
 #include <ompl/control/planners/syclop/SyclopRRT.h>
 #include <ompl/geometric/planners/rrt/RRTConnect.h>
 #include <ompl/control/planners/est/EST.h>
@@ -32,30 +33,10 @@ using namespace ompl;
 
 void AUV_TorpedoSetup(AUV_Torpedo& setup)
 {
-	// plan for kinematic car in SE(3)
 	base::StateSpacePtr StSpace(setup.getStateSpace());
-	
-	// set the bounds for the R^3 part of SE(3)
-	/*base::RealVectorBounds bounds(8);
-	bounds.setLow(-1000.0);
-	bounds.setHigh(1000.0);
-	bounds.setLow(3,-M_PI);
-	bounds.setHigh(3,M_PI);
-	bounds.setLow(4,-3);
-	bounds.setHigh(4,3);
-	bounds.setLow(5,-3);
-	bounds.setHigh(5,3);
-	bounds.setLow(6,-3);
-	bounds.setHigh(6,3);
-	bounds.setLow(7,-3);
-	bounds.setHigh(7,3);
-	StSpace->as<base::RealVectorStateSpace>()->setBounds(bounds);*/
 
 	// define start state
 	base::ScopedState<base::RealVectorStateSpace> start(setup.getGeometricComponentStateSpace());
-	/*start[0] = 350.;
-	start[1] = 50.;
-	start[2] = -991.;*/
 	start[0] = 100.;
 	start[1] = 50.;
 	start[2] = 100.;
@@ -67,8 +48,8 @@ void AUV_TorpedoSetup(AUV_Torpedo& setup)
 
 	// define goal state
 	base::ScopedState<base::RealVectorStateSpace> goal(setup.getGeometricComponentStateSpace());
-	goal[0] = 655.;
-	goal[1] = 1050.;
+	goal[0] = 150.;
+	goal[1] = 100.;
 	goal[2] = 200.;
     goal[3] = 0.;
     goal[4] = 0.;
@@ -76,21 +57,11 @@ void AUV_TorpedoSetup(AUV_Torpedo& setup)
     goal[6] = 0.;
     goal[7] = 0.;
 
-
-
-    //setup.getSpaceInformation()->printState(start);
-	// set the start & goal states
-	//setup.setStartAndGoalStates(start, goal, .1);
 	setup.setStartAndGoalStates(
 		setup.getFullStateFromGeometricComponent(start),
         setup.getFullStateFromGeometricComponent(goal), .1);
 
-
 	setup.setup();
-
-    setup.getSpaceInformation()->printProperties();
-    setup.getSpaceInformation()->printSettings();
-    start.print();
 
 	printf ("FIN setup\n");
 }
@@ -98,7 +69,8 @@ void AUV_TorpedoSetup(AUV_Torpedo& setup)
 
 void AUV_TorpedoDemo(AUV_Torpedo& setup)
 {
-	setup.setPlanner(base::PlannerPtr(new control::RRT(setup.getSpaceInformation())));
+	//setup.setPlanner(base::PlannerPtr(new control::RRT(setup.getSpaceInformation())));
+	setup.setPlanner(base::PlannerPtr(new guillermo::RRT(setup.getSpaceInformation())));
 	//setup.setPlanner(base::PlannerPtr(new control::SyclopRRT(setup.getSpaceInformation())));
 
 	//setup.setup();
@@ -109,27 +81,26 @@ void AUV_TorpedoDemo(AUV_Torpedo& setup)
 	std::fstream benchmarkFile;
 	std::ofstream benchmarkWithQuatFile;
   	benchmarkFile.open ("benchmarkDebug.txt", std::fstream::in | std::fstream::out | std::fstream::trunc);
+  	benchmarkFile.open ("benchmarkDebug.txt", std::fstream::in | std::fstream::out | std::fstream::trunc);
 
-	std::cout << "D.1" << std::endl;
 	// try to solve the problem
-	if (setup.solve(50))
+	if (setup.solve(600))
 	{
 		// print the (approximate) solution path: print states along the path
 		// and controls required to get from one state to the next
-		std::cout << "D.2" << std::endl;
+
 		control::PathControl& path(setup.getSolutionPath());
 		//path.interpolate(); // uncomment if you want to plot the path
 		path.printAsMatrix(std::cout);
-		path.printAsMatrix(benchmarkFile);
 		path.interpolate(); // uncomment if you want to plot the path
-		path.printAsMatrix(std::cout);
+		path.printAsMatrix(benchmarkFile);
+		//path.printAsMatrix(std::cout);
 		if (!setup.haveExactSolutionPath())
 		{
 			std::cout << "Solution is approximate. Distance to actual goal is " <<
 					setup.getProblemDefinition()->getSolutionDifference() << std::endl;
 		}
 	}
-	std::cout << "D.3" << std::endl;
 
   	benchmarkWithQuatFile.open ("benchmarkWithQuatDebug.txt", std::fstream::out | std::fstream::trunc);
 
@@ -152,13 +123,13 @@ void AUV_TorpedoDemo(AUV_Torpedo& setup)
 				fcl::Quaternion3f quat;
     			fcl::Vec3f zaxis(0., 0., 1.); //se pone así porque tiene que ser un vector unitario
     			quat.fromAxisAngle(zaxis, num);
-				benchmarkWithQuatFile << quat.getW ();
-				benchmarkWithQuatFile << " ";
 				benchmarkWithQuatFile << quat.getX ();
 				benchmarkWithQuatFile << " ";
 				benchmarkWithQuatFile << quat.getY ();
 				benchmarkWithQuatFile << " ";
 				benchmarkWithQuatFile << quat.getZ ();
+				benchmarkWithQuatFile << " ";
+				benchmarkWithQuatFile << quat.getW ();
 				benchmarkWithQuatFile << " ";
 				break;
 			}
@@ -180,7 +151,7 @@ void AUV_TorpedoBenchmark(AUV_Torpedo& setup)
     //setup.setup ();
 
     tools::Benchmark b(setup, setup.getName());
-    b.addPlanner(base::PlannerPtr(new control::RRT(setup.getSpaceInformation())));
+    b.addPlanner(base::PlannerPtr(new guillermo::RRT(setup.getSpaceInformation())));
     b.benchmark(request);
     b.saveResultsToFile();
 }
@@ -188,7 +159,7 @@ void AUV_TorpedoBenchmark(AUV_Torpedo& setup)
 void moveAUV(AUV_Torpedo& setup, double t1, double t2, double t3, double tiempo){
 
 	printf("[moveAUV] Init\n");
-	setup.setup();
+	//setup.setup();
 	base::State *state; 
 	state = setup.getSpaceInformation()->allocState();
 	state->as<base::RealVectorStateSpace::StateType>()->values[0] = 0.0;
@@ -235,6 +206,32 @@ void moveAUV(AUV_Torpedo& setup, double t1, double t2, double t3, double tiempo)
 	printf("result vz: %f\n", result->as<base::RealVectorStateSpace::StateType>()->values[6]);
 	printf("result vyaw: %f\n", result->as<base::RealVectorStateSpace::StateType>()->values[7]);
 	printf("[moveAUV] End of propagate\n");
+	printf("[moveAUV] -------------------\n");
+
+	printf("[moveAUV] Start of sampleTo\n");
+
+	stProp->canSteer() ? printf("Con steer\n") : printf("Sin steer\n");
+
+	ompl::control::DirectedControlSamplerPtr controlSampler_ = setup.getSpaceInformation()->allocDirectedControlSampler();
+
+	//controlSampler_->as<SimpleDirectedControlSampler>()->setNumControlSamples(20);
+
+	ompl::control::Control *rctrl = setup.getSpaceInformation()->allocControl();
+	unsigned int cd = controlSampler_->sampleTo(rctrl, state, result);
+	printf("rctrl t1: %f\n", rctrl->as<ompl::control::RealVectorControlSpace::ControlType>()->values[0]);
+	printf("rctrl t2: %f\n", rctrl->as<ompl::control::RealVectorControlSpace::ControlType>()->values[1]);
+	printf("rctrl t3: %f\n", rctrl->as<ompl::control::RealVectorControlSpace::ControlType>()->values[2]);
+	printf("result x: %f\n", result->as<base::RealVectorStateSpace::StateType>()->values[0]);
+	printf("result y: %f\n", result->as<base::RealVectorStateSpace::StateType>()->values[1]);
+	printf("result z: %f\n", result->as<base::RealVectorStateSpace::StateType>()->values[2]);
+	printf("result yaw: %f\n", result->as<base::RealVectorStateSpace::StateType>()->values[3]);
+	printf("result vx: %f\n", result->as<base::RealVectorStateSpace::StateType>()->values[4]);
+	printf("result vy: %f\n", result->as<base::RealVectorStateSpace::StateType>()->values[5]);
+	printf("result vz: %f\n", result->as<base::RealVectorStateSpace::StateType>()->values[6]);
+	printf("result vyaw: %f\n", result->as<base::RealVectorStateSpace::StateType>()->values[7]);
+	printf("rctrl tiempo: %d\n", cd);
+
+	printf("[moveAUV] End of sampleTo\n");
 }
 
 
@@ -254,14 +251,15 @@ int main(int argc, char** argv)
 				return 0;
 			}
 
-			double t1 = atoi(argv[2]);
-			double t2 = atoi(argv[3]);
-			double t3 = atoi(argv[4]);
-			double tiempo = atoi(argv[5]);
+			double t1 = atof(argv[2]);
+			double t2 = atof(argv[3]);
+			double t3 = atof(argv[4]);
+			double tiempo = atof(argv[5]);
 
 			//if(argc == 7 && strcmp(argv[6],"-v") == 0) verbose = 1;
 
 			AUV_Torpedo setup;
+			AUV_TorpedoSetup(setup);
 			moveAUV(setup, t1, t2, t3, tiempo);	
 
 		}else if(strcmp(argv[1],"-p") == 0){
@@ -274,7 +272,8 @@ int main(int argc, char** argv)
 			const char* configFileName = argv[2];
 
 			AUV_Torpedo setup;
-			std::string env_fname =   "/home/guillermo/workspace_tfm/resources/entorno_columnas_x+90.dae";
+			//std::string env_fname =   "/home/guillermo/workspace_tfm/resources/entorno_columnas_x+90.dae";
+			std::string env_fname =   "/home/guillermo/workspace_tfm/resources/entorno_vacio_x+90.dae";
 			std::string robot_fname = "/home/guillermo/workspace_tfm/resources/cilinder_AUV.dae";
 		    setup.setEnvironmentMesh(env_fname.c_str());
 			setup.setRobotMesh(robot_fname.c_str());

@@ -28,7 +28,12 @@ set(CMAKE_CXX_FLAGS "-lompl -lompl_app_base -lboost_system")
 include_directories( includes ${OMPL_INCLUDE_DIRS} ${OMPLAPP_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} ${FCL_INCLUDE_DIRS} )
 LINK_DIRECTORIES ( ${Boost_LIBRARY_DIRS} )
 
-add_executable(AUVTorpedoBenchmark src/benchmarks/AUV_Torpedo_Benchmark4D.cpp src/robots/AUV_Torpedo4D.cpp src/colisionador/RigidBodyGeometry.cpp src/colisionador/appUtil.cpp)
+add_executable(AUVTorpedoBenchmark src/benchmarks/AUV_Torpedo_Benchmark4D.cpp 
+	src/robots/AUV_Torpedo4D.cpp 
+	src/colisionador/RigidBodyGeometry.cpp 
+	src/colisionador/appUtil.cpp
+	src/planners/PlanificadorControl.cpp
+	src/planners/RRT.cpp)
 set_property(TARGET AUVTorpedoBenchmark PROPERTY CXX_STANDARD 11)
 target_link_libraries(AUVTorpedoBenchmark PUBLIC assimp ompl_app_base ompl_app ${OMPLAPP_LIBRARIES} ${OMPL_LIBRARIES} ${FCL_LIBRARIES} ${Boost_LIBRARIES})
 MESSAGE(STATUS "target_link_libraries(AUVTorpedoBenchmark PUBLIC ${FCL_LIBRARIES} ${OMPLAPP_LIBRARIES} ${OMPL_LIBRARIES} ${Boost_LIBRARIES})")
