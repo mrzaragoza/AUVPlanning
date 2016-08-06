@@ -1,7 +1,24 @@
 #include "planners/PlanificadorLocal/MuestreadorControl/MuestreadorControl.h"
 
 
-void ompl::guillermo::MuestreadorControl::sample(Control *control)
+ompl::guillermo::MuestreadorControl::MuestreadorControl(const ompl::control::ControlSpace *space) : control::ControlSampler::ControlSampler(space)
+{
+    goal_->as<base::RealVectorStateSpace::StateType>()->values[0] = 0.0;
+    goal_->as<base::RealVectorStateSpace::StateType>()->values[1] = 0.0;
+    goal_->as<base::RealVectorStateSpace::StateType>()->values[2] = 0.0;
+    goal_->as<base::RealVectorStateSpace::StateType>()->values[3] = 0.0;
+    goal_->as<base::RealVectorStateSpace::StateType>()->values[4] = 0.0;
+    goal_->as<base::RealVectorStateSpace::StateType>()->values[5] = 0.0;
+    goal_->as<base::RealVectorStateSpace::StateType>()->values[6] = 0.0;
+    goal_->as<base::RealVectorStateSpace::StateType>()->values[7] = 0.0;
+
+    controlZEstable = 0.07;
+    tiempoBase      = 50;
+    maxDiferenciaControl = 0.5;
+    margenCercania = 0.2;
+}
+
+void ompl::guillermo::MuestreadorControl::sample(control::Control *control)
 {
     const unsigned int dim = space_->getDimension();
 
@@ -9,15 +26,15 @@ void ompl::guillermo::MuestreadorControl::sample(Control *control)
     	printf("ompl::guillermo::MuestreadorControl::sample: Error! El numero de dimensiones no concuerda. Dim = %d\n",dim);
     }
 
-    const base::RealVectorBounds &bounds = static_cast<const RealVectorControlSpace*>(space_)->getBounds();
+    const base::RealVectorBounds &bounds = static_cast<const ompl::control::RealVectorControlSpace*>(space_)->getBounds();
 
-    RealVectorControlSpace::ControlType *newControl = static_cast<RealVectorControlSpace::ControlType*>(control);
+    ompl::control::RealVectorControlSpace::ControlType *newControl = static_cast<ompl::control::RealVectorControlSpace::ControlType*>(control);
 
     for (unsigned int i = 0 ; i < dim ; ++i)
         newControl->values[i] = rng_.uniformReal(bounds.low[i], bounds.high[i]);
 }
 
-void ompl::guillermo::MuestreadorControl::sample(Control *control, const base::State * state)
+void ompl::guillermo::MuestreadorControl::sample(control::Control *control, const base::State * state)
 {
     const unsigned int dim = space_->getDimension();
 
@@ -25,23 +42,23 @@ void ompl::guillermo::MuestreadorControl::sample(Control *control, const base::S
     	printf("ompl::guillermo::MuestreadorControl::sample: Error! El numero de dimensiones no concuerda. Dim = %d\n",dim);
     }
 
-    const base::RealVectorBounds &bounds = static_cast<const RealVectorControlSpace*>(space_)->getBounds();
+    const base::RealVectorBounds &bounds = static_cast<const ompl::control::RealVectorControlSpace*>(space_)->getBounds();
 
-    RealVectorControlSpace::ControlType *newControl = static_cast<RealVectorControlSpace::ControlType*>(control);
+    ompl::control::RealVectorControlSpace::ControlType *newControl = static_cast<ompl::control::RealVectorControlSpace::ControlType*>(control);
 
     //Distancias con estado inicial
 	double diff_x_inicial 		= goal_->as<base::RealVectorStateSpace::StateType>()->values[0]-state->as<base::RealVectorStateSpace::StateType>()->values[0];
 	double diff_y_inicial 		= goal_->as<base::RealVectorStateSpace::StateType>()->values[1]-state->as<base::RealVectorStateSpace::StateType>()->values[1];
 	double diff_z_inicial 		= goal_->as<base::RealVectorStateSpace::StateType>()->values[2]-state->as<base::RealVectorStateSpace::StateType>()->values[2];
-	double dist_total 			= sqrt(diff_x_inicial^ 2 + diff_y_inicial^2 );
-	double dist_total_3D 		= sqrt(diff_x_inicial^ 2 + diff_y_inicial^2 + diff_z_inicial^2 );
+	double dist_total 			= sqrt(pow(diff_x_inicial,2) + pow(diff_y_inicial,2) );
+	double dist_total_3D 		= sqrt(pow(diff_x_inicial,2) + pow(diff_y_inicial,2) + pow(diff_z_inicial,2));
 
 	//Distancias con estado actual
 	double diff_x 				= goal_->as<base::RealVectorStateSpace::StateType>()->values[0]-state->as<base::RealVectorStateSpace::StateType>()->values[0];
 	double diff_y 				= goal_->as<base::RealVectorStateSpace::StateType>()->values[1]-state->as<base::RealVectorStateSpace::StateType>()->values[1];
 	double diff_z 				= goal_->as<base::RealVectorStateSpace::StateType>()->values[2]-state->as<base::RealVectorStateSpace::StateType>()->values[2];
-	double dist_actual 			= sqrt(diff_x^ 2 + diff_y^2 );
-	double dist_actual_3D 		= sqrt(diff_x^ 2 + diff_y^2 + diff_z^2);
+	double dist_actual 			= sqrt(pow(diff_x,2) + pow(diff_y,2) );
+	double dist_actual_3D 		= sqrt(pow(diff_x,2) + pow(diff_y,2) + pow(diff_z,2));
 
 	//Normalización entre 0 y 1 de la distancia actual respecto a la inicial
 	double norm_distancia 		= 0;
@@ -56,59 +73,55 @@ void ompl::guillermo::MuestreadorControl::sample(Control *control, const base::S
 
 
 	//Calculo del ángulo que hay entre el estado actual y el final y la diferencia entre éste y el yaw del vehículo
-	double heading = atan2(diff_y,diff_x) //radianes
-	double diff_heading = heading - st_actual[3];
+	double heading = atan2(diff_y,diff_x); //radianes
+	double diff_heading = heading - state->as<base::RealVectorStateSpace::StateType>()->values[3];
 
-	num_aleatorio = rand(1);
-	if(diff_heading > margen_cercania){
-	    newControl->values[1] = num_aleatorio + rand(1)*max_diff_thrusters/2;
-	    newControl->values[2] = num_aleatorio - rand(1)*max_diff_thrusters/2;
-	}else if(diff_heading < -margen_cercania){
-	    newControl->values[1] = num_aleatorio - rand(1)*max_diff_thrusters/2;
-	    newControl->values[2] = num_aleatorio + rand(1)*max_diff_thrusters/2;
+	double num_aleatorio = rng_.uniformReal(0,1);
+	if(diff_heading > margenCercania){
+	    newControl->values[1] = num_aleatorio + rng_.uniformReal(0, bounds.high[1])*maxDiferenciaControl/2;
+	    newControl->values[2] = num_aleatorio - rng_.uniformReal(0, bounds.high[2])*maxDiferenciaControl/2;
+	}else if(diff_heading < -margenCercania){
+	    newControl->values[1] = num_aleatorio - rng_.uniformReal(0, bounds.high[1])*maxDiferenciaControl/2;
+	    newControl->values[2] = num_aleatorio + rng_.uniformReal(0, bounds.high[2])*maxDiferenciaControl/2;
 	}else{ //diff_heading ~ 0
-	    newControl->values[1] = num_aleatorio + (rand(1)*2 -1)*max_diff_thrusters/8;
-	    newControl->values[2] = num_aleatorio + (rand(1)*2 -1)*max_diff_thrusters/8;
+	    newControl->values[1] = num_aleatorio + rng_.uniformReal(bounds.low[1], bounds.high[1])*maxDiferenciaControl/8;
+	    newControl->values[2] = num_aleatorio + rng_.uniformReal(bounds.low[2], bounds.high[2])*maxDiferenciaControl/8;
 	}
 
-	if(diff_z > margen_cercania){
-	    newControl->values[0] = rand(1);
-	}else if(diff_z < -margen_cercania){
-	    newControl->values[0] = rand(1)*(-1);
+	if(diff_z > margenCercania){
+	    newControl->values[0] = rng_.uniformReal(0, bounds.high[0]);
+	}else if(diff_z < -margenCercania){
+	    newControl->values[0] = rng_.uniformReal(bounds.low[0], 0);
 	}else{ //diff_z ~ 0
-	    newControl->values[0] = (rand(1)*2 - 1);
-	    newControl->values[0] = newControl->values[0] * 0.1 * control_z_estable;
+	    newControl->values[0] = rng_.uniformReal(bounds.low[0], bounds.high[0]);
+	    newControl->values[0] = newControl->values[0] * 0.1 * controlZEstable;
 	}
 
 	//Se multiplica por la normalización de la distancia, haciendo que cuanto
 	//más cerca se esté del objetivo, los controles sean más pequeños.
 
-	if(norm_distancia_z ~= 0 ) control(1) = control(1) * norm_distancia_z;
+	if(norm_distancia_z != 0 ) newControl->values[0] = newControl->values[0] * norm_distancia_z;
 		    
-	control(2) = control(2) * norm_distancia;
-	control(3) = control(3) * norm_distancia;
+	newControl->values[1] = newControl->values[1] * norm_distancia;
+	newControl->values[2] = newControl->values[2] * norm_distancia;
 
-	if(control(1)>1) control(1) = 1;
-	elseif(control(1)<-1) control(1) = -1;
+	if(newControl->values[0] > 1) newControl->values[0] = 1;
+	else if(newControl->values[0] < -1) newControl->values[0] = -1;
 	
-	if(control(2)>1) control(2) = 1;
-	elseif(control(2)<-1) control(2) = -1;
+	if(newControl->values[1] > 1) newControl->values[1] = 1;
+	else if(newControl->values[1] < -1) newControl->values[1] = -1;
 	
-	if(control(3)>1) control(3) = 1;
-	elseif(control(3)<-1) control(3) = -1;
+	if(newControl->values[2] > 1) newControl->values[2] = 1;
+	else if(newControl->values[2] < -1) newControl->values[2] = -1;
 	
-
-
-    for (unsigned int i = 0 ; i < dim ; ++i)
-        newControl->values[i] = rng_.uniformReal(bounds.low[i], bounds.high[i]);
 }
 
-void ompl::guillermo::MuestreadorControl::sampleNext(Control *control, const Control * /* previous */)
+void ompl::guillermo::MuestreadorControl::sampleNext(control::Control *control, const control::Control * /* previous */)
 {
     sample(control);
 }
 
-void ompl::guillermo::MuestreadorControl::sampleNext(Control *control, const Control * /* previous */, const base::State * state)
+void ompl::guillermo::MuestreadorControl::sampleNext(control::Control *control, const control::Control * /* previous */, const base::State * state)
 {
     sample(control,state);
 }
@@ -118,12 +131,12 @@ unsigned int ompl::guillermo::MuestreadorControl::sampleStepCount(unsigned int m
     return rng_.uniformInt(minSteps, maxSteps);
 }
 
-void ompl::guillermo::MuestreadorControl::setGoal(const base::State state)
+void ompl::guillermo::MuestreadorControl::setGoal(base::State *state)
 {
     goal_ = state;
 }
 
-void ompl::guillermo::MuestreadorControl::getGoal()
+ompl::base::State* ompl::guillermo::MuestreadorControl::getGoal()
 {
     return goal_;
 }
