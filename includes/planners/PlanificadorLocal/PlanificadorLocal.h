@@ -3,18 +3,24 @@
 
 #include "ompl/control/DirectedControlSampler.h"
 #include "ompl/control/ControlSampler.h"
+#include "ompl/control/SpaceInformation.h"
+#include "ompl/control/spaces/RealVectorControlSpace.h"
+#include "ompl/control/ControlSpace.h"
+#include "planners/PlanificadorLocal/MuestreadorControl/MuestreadorControl.h"
 
 namespace ompl
 {
     namespace guillermo
     {
 
-        class PlanificadorLocal : public DirectedControlSampler
+        class PlanificadorLocal : public control::DirectedControlSampler
         {
         public:
-            PlanificadorLocal(const SpaceInformation *si, unsigned int k = 1);
+            PlanificadorLocal(const control::SpaceInformation *si, unsigned int k = 1, base::State *start=NULL, base::State *goal=NULL);
 
-            virtual ~PlanificadorLocal();
+            ~PlanificadorLocal();
+
+            static ompl::control::DirectedControlSamplerPtr PlanificadorLocalAllocator(const ompl::control::SpaceInformation *si, unsigned int k, base::State *start, base::State *goal);
 
             unsigned int getNumControlSamples () const
             {
@@ -26,15 +32,41 @@ namespace ompl
                 numControlSamples_ = numSamples;
             }
 
-            virtual unsigned int sampleTo(Control *control, const base::State *source, base::State *dest);
+            unsigned int sampleTo(control::Control *control, const base::State *source, base::State *dest);
 
-            virtual unsigned int sampleTo(Control *control, const Control *previous, const base::State *source, base::State *dest);
+            unsigned int sampleTo(control::Control *control, const control::Control *previous, const base::State *source, base::State *dest);
+
+            inline void setGoal(base::State *state){
+                //cs_->setGoal(state);
+                mc_->setGoal(state);
+            }
+
+            inline ompl::base::State* getGoal(){
+                //return cs_->getGoal();
+                return mc_->getGoal();
+            }
+
+            inline void setStart(base::State *state){
+                //cs_->setStart(state);
+                mc_->setStart(state);
+            }
+
+            inline ompl::base::State* getStart(){
+                //return cs_->getStart();
+                return mc_->getStart();
+            }
+
+            static ompl::control::ControlSamplerPtr MuestreadorControlAllocator(const ompl::control::ControlSpace *sp);
 
         protected:
 
-            virtual unsigned int getBestControl (Control *control, const base::State *source, base::State *dest);
+            unsigned int getBestControl (control::Control *control, const base::State *source, base::State *dest);
 
-            ControlSamplerPtr       cs_;
+            control::ControlSpacePtr         csp_;
+            control::ControlSamplerPtr        cs_;
+
+            static MuestreadorControl                *mc_;
+            ompl::control::ControlSamplerAllocator        mca;
 
             /** \brief The number of controls to sample when finding the best control*/
             unsigned int            numControlSamples_;

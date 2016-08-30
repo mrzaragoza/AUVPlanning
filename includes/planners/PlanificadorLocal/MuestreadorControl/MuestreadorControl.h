@@ -16,40 +16,54 @@ namespace ompl
     namespace guillermo
     {
 
-        class MuestreadorControl : control::ControlSampler
+        class MuestreadorControl : public control::ControlSampler
         {
         public:
 
             MuestreadorControl(const ompl::control::ControlSpace *space);
 
-            virtual ~MuestreadorControl(){
+            ~MuestreadorControl(){
             }
 
-            virtual void sample(control::Control *control);
+            void sample(control::Control *control);
 
-            virtual void sample(control::Control *control, const base::State *state);
+            void sample(control::Control *control, const base::State *state);
             
-            virtual void sampleNext(control::Control *control, const control::Control *previous);
+            void sampleNext(control::Control *control, const control::Control *previous);
 
-            virtual void sampleNext(control::Control *control, const control::Control *previous, const base::State *state);
+            void sampleNext(control::Control *control, const control::Control *previous, const base::State *state);
 
-            virtual unsigned int sampleStepCount(unsigned int minSteps, unsigned int maxSteps);
+            unsigned int sampleStepCount(unsigned int minSteps, unsigned int maxSteps);
 
-            virtual void setGoal(base::State *state);
+            void setGoal(base::State *state);
 
-            virtual ompl::base::State* getGoal();
+            ompl::base::State* getGoal();
+
+            void setStart(base::State *state);
+
+            ompl::base::State* getStart();
 
         private:
 
             /** \brief Instance of random number generator */
             RNG                             rng_;
 
-            base::State                     *goal_;
+            static base::State                     *goal_;
+            static base::State                     *start_;
+
+            double                          diff_x_inicial;
+            double                          diff_y_inicial;
+            double                          diff_z_inicial;
+            double                          dist_total;
+            double                          dist_total_3D;
 
             double                          maxDiferenciaControl;
             double                          margenCercania;
             unsigned int                    tiempoBase;
             float                           controlZEstable;
+
+            const control::ControlSpace    *space_mc;
+            int cont;
         };
 
     }

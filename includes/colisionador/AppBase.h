@@ -96,28 +96,23 @@ namespace ompl
 
             virtual void setup(void)
             {
-                inferEnvironmentBounds();
-
-                if (AppTypeSelector<T>::SimpleSetup::getProblemDefinition()->getStartStateCount() == 0)
-                {
-                    OMPL_INFORM("Adding default start state");
-                    AppTypeSelector<T>::SimpleSetup::addStartState(getDefaultStartState());
-                }
-
-                inferProblemDefinitionBounds();
-
                 const base::StateValidityCheckerPtr &svc = allocStateValidityChecker(AppTypeSelector<T>::SimpleSetup::si_,
                                                                                      getGeometricStateExtractor(), isSelfCollisionEnabled());
                 if (AppTypeSelector<T>::SimpleSetup::si_->getStateValidityChecker() != svc)
                     AppTypeSelector<T>::SimpleSetup::si_->setStateValidityChecker(svc);
 
                 AppTypeSelector<T>::SimpleSetup::getStateSpace()->setup();
+                OMPL_INFORM("Prueba");
 
-                if (!AppTypeSelector<T>::SimpleSetup::getStateSpace()->hasDefaultProjection())
+
+                //if (!AppTypeSelector<T>::SimpleSetup::getStateSpace()->hasDefaultProjection()){
+                    OMPL_INFORM("GeometricStateProjector a realizar");
                     AppTypeSelector<T>::SimpleSetup::getStateSpace()->
                         registerDefaultProjection(allocGeometricStateProjector(AppTypeSelector<T>::SimpleSetup::getStateSpace(),
                                                                                mtype_, getGeometricComponentStateSpace(),
                                                                                getGeometricStateExtractor()));
+                        OMPL_INFORM("GeometricStateProjector realizado");
+                //}
 
                 AppTypeSelector<T>::SimpleSetup::setup();
             }

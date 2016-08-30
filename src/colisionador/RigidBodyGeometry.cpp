@@ -125,7 +125,7 @@ ompl::base::RealVectorBounds ompl::guillermo::RigidBodyGeometry::inferEnvironmen
 
     if (mtype_ == Motion_2_5D)
     {
-        bounds.low.resize(8);
+        /*bounds.low.resize(8);
         bounds.high.resize(8);
         bounds.setLow(3,-M_PI);
         bounds.setLow(4,-3);
@@ -136,7 +136,7 @@ ompl::base::RealVectorBounds ompl::guillermo::RigidBodyGeometry::inferEnvironmen
         bounds.setHigh(4,3);
         bounds.setHigh(5,3);
         bounds.setHigh(6,3);
-        bounds.setHigh(7,3);
+        bounds.setHigh(7,3);*/
     }
 
     return bounds;
