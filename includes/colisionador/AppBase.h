@@ -102,7 +102,7 @@ namespace ompl
                     AppTypeSelector<T>::SimpleSetup::si_->setStateValidityChecker(svc);
 
                 AppTypeSelector<T>::SimpleSetup::getStateSpace()->setup();
-                OMPL_INFORM("Prueba");
+                //OMPL_INFORM("Prueba");
 
 
                 //if (!AppTypeSelector<T>::SimpleSetup::getStateSpace()->hasDefaultProjection()){

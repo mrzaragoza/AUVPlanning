@@ -7,27 +7,45 @@ AUV_Torpedo::AUV_Torpedo()
 {
     name_ = std::string("Path planning test for a 4 dimensional space");
 
-    //Valores Sparus II
+    YAML::Node config = YAML::LoadFile("torpedo.yaml");
     
-    setMass(43); //34.5
-    setVehicleLengths({1.76, 0.1, 0.183, 0.183});
+    setMass(config["torpedo/mass"].as<double>()); //34.5
+    setVehicleLengths({config["torpedo/lengths"][0].as<double>(), 
+        config["torpedo/lengths"][1].as<double>(), 
+        config["torpedo/lengths"][2].as<double>(), 
+        config["torpedo/lengths"][3].as<double>()}
+        );
 
-    long_fluid_displaced = 1;
+    long_fluid_displaced = config["torpedo/long_fluid_displaced"].as<double>();
     vol_fluid_displaced = M_PI * pow(lengths_[1],2) * long_fluid_displaced;
-    f_espuma = 10.9;
+    f_espuma = config["torpedo/f_espuma"].as<double>();
 
     W = mass_ * GRAVITY;
     B = (double) GRAVITY * (FLUID_DENSITY * vol_fluid_displaced + f_espuma);
 
-    setRBMassCoefficients({(double) mass_, (double) mass_, (double) mass_, 8.0});
-    array<double,N_DIMENSIONS> amCoef {0.0, 0.0, 0.0, 0.0};
-    for (int i = 0; i < N_DIMENSIONS; ++i)
-    {
-        amCoef[i] = 0.1 * rbMassCoefficients_[i];
-    }
-    setAddedMassCoefficients(amCoef); //La matriz de masas añadidas la tienen mal, ésta de aquí está sacada del Paper
-    setDampingCoefficients({1.0, 14.0, 14.0, 6.0});
-    setQuadraticDampingCoefficients({3.0, 14.0, 14.0, 8.0});
+    setRBMassCoefficients({config["torpedo/rbMassCoefficients"][0].as<double>(),
+        config["torpedo/rbMassCoefficients"][1].as<double>(),
+        config["torpedo/rbMassCoefficients"][2].as<double>(),
+        config["torpedo/rbMassCoefficients"][3].as<double>()}
+        );
+    
+    setAddedMassCoefficients({config["torpedo/aMassCoefficients"][0].as<double>(),
+        config["torpedo/aMassCoefficients"][1].as<double>(),
+        config["torpedo/aMassCoefficients"][2].as<double>(),
+        config["torpedo/aMassCoefficients"][3].as<double>()}
+        );
+
+    setDampingCoefficients({config["torpedo/dampingCoefficients"][0].as<double>(),
+        config["torpedo/dampingCoefficients"][1].as<double>(),
+        config["torpedo/dampingCoefficients"][2].as<double>(),
+        config["torpedo/dampingCoefficients"][3].as<double>()}
+        );
+
+    setQuadraticDampingCoefficients({config["torpedo/quadraticDampingCoefficients"][0].as<double>(),
+        config["torpedo/quadraticDampingCoefficients"][1].as<double>(),
+        config["torpedo/quadraticDampingCoefficients"][2].as<double>(),
+        config["torpedo/quadraticDampingCoefficients"][3].as<double>()}
+        );
     
     setDefaultControlBounds();
 
@@ -62,18 +80,18 @@ void AUV_Torpedo::setup(void)
     bounds.setLow(1,boundsGeometric.low[1]);
     bounds.setLow(2,boundsGeometric.low[2]);
     bounds.setLow(3,-M_PI);
-    bounds.setLow(4,-3);
-    bounds.setLow(5,-3);
-    bounds.setLow(6,-3);
-    bounds.setLow(7,-3);
+    bounds.setLow(4,-2);
+    bounds.setLow(5,-2);
+    bounds.setLow(6,-2);
+    bounds.setLow(7,-2);
     bounds.setHigh(0,boundsGeometric.high[0]);
     bounds.setHigh(1,boundsGeometric.high[1]);
     bounds.setHigh(2,boundsGeometric.high[2]);
     bounds.setHigh(3,M_PI);
-    bounds.setHigh(4,3);
-    bounds.setHigh(5,3);
-    bounds.setHigh(6,3);
-    bounds.setHigh(7,3);
+    bounds.setHigh(4,2);
+    bounds.setHigh(5,2);
+    bounds.setHigh(6,2);
+    bounds.setHigh(7,2);
 
     getStateSpace()->as<ompl::base::RealVectorStateSpace>()->setBounds(bounds);
 
@@ -97,16 +115,10 @@ ompl::base::ScopedState<> AUV_Torpedo::getFullStateFromGeometricComponent(const 
 base::ScopedState<> AUV_Torpedo::getDefaultStartState(void) const
 {
     base::ScopedState<base::RealVectorStateSpace> s(getGeometricComponentStateSpace());
-    //aiVector3D s = getRobotCenter(0);
 
     s[0] = 0.;
     s[1] = 0.;
     s[2] = 0.;
-    s[3] = 0.;
-    s[4] = 0.;
-    s[5] = 0.;
-    s[6] = 0.;
-    s[7] = 0.;
     return getFullStateFromGeometricComponent(s);
 }
 

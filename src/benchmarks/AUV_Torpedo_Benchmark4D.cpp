@@ -36,20 +36,23 @@
 
 #include <fcl/collision.h>
 
+#include "yaml-cpp/yaml.h"
+
 
 using namespace ompl;
 
 //const control::SpaceInformationPtr si;
 
-void AUV_TorpedoSetup(AUV_Torpedo& setup)
+
+void AUV_TorpedoSetup(AUV_Torpedo& setup, YAML::Node config)
 {
 	base::StateSpacePtr StSpace(setup.getStateSpace());
 
 	// define start state
 	base::ScopedState<base::RealVectorStateSpace> start(setup.getGeometricComponentStateSpace());
-	start[0] = 600.;
-	start[1] = 120.;
-	start[2] = 100.;
+	start[0] = config["general/start"][0].as<double>();
+	start[1] = config["general/start"][1].as<double>();
+	start[2] = config["general/start"][2].as<double>();	
     /*start[3] = 0.;
     start[4] = 0.;
     start[5] = 0.;
@@ -57,45 +60,67 @@ void AUV_TorpedoSetup(AUV_Torpedo& setup)
     start[7] = 0.;*/
 
 	// define goal state
-	base::ScopedState<base::RealVectorStateSpace> goal(setup.getGeometricComponentStateSpace());
-	goal[0] = 550.;
-	goal[1] = 330.;
-	goal[2] = 115.;
+    base::ScopedState<base::RealVectorStateSpace> goal(setup.getGeometricComponentStateSpace());
+    goal[0] = config["general/goal"][0].as<double>();
+    goal[1] = config["general/goal"][1].as<double>();
+    goal[2] = config["general/goal"][2].as<double>();
     /*goal[3] = 0.;
     goal[4] = 0.;
     goal[5] = 0.;
     goal[6] = 0.;
     goal[7] = 0.;*/
 
-	setup.setStartAndGoalStates(
-		setup.getFullStateFromGeometricComponent(start),
-        setup.getFullStateFromGeometricComponent(goal), 3.0);
+    setup.setStartAndGoalStates(
+    	setup.getFullStateFromGeometricComponent(start),
+    	setup.getFullStateFromGeometricComponent(goal), config["general/distanceToGoal"].as<double>());
 
 	//si = setup.getSpaceInformation().get();
 	/*ompl::control::DirectedControlSamplerAllocator pla = boost::bind(ompl::guillermo::PlanificadorLocal::PlanificadorLocalAllocator, setup.getSpaceInformation().get(), 15, start.get(), goal.get());
     setup.getSpaceInformation().get()->setDirectedControlSamplerAllocator(pla);*/
 
-    setup.getSpaceInformation().get()->setPropagationStepSize(0.1);
-    setup.getSpaceInformation().get()->setMinMaxControlDuration(25,500);
+    setup.getSpaceInformation().get()->setPropagationStepSize(config["general/propStepSize"].as<double>());
+    setup.getSpaceInformation().get()->setMinMaxControlDuration(config["general/minControlDuration"].as<double>(),config["general/maxControlDuration"].as<double>());
 
     //ompl::guillermo::PlanificadorLocal *pl = (ompl::guillermo::PlanificadorLocal *) setup.getSpaceInformation()->allocDirectedControlSampler().get();
     //pl->setGoal(goal.get());
     //pl->setStart(start.get());
 
-    setup.getSpaceInformation()->setStateValidityCheckingResolution(0.01);
+    setup.getSpaceInformation()->setStateValidityCheckingResolution(config["general/checkresolution"].as<double>());
 
-	printf ("FIN setup\n");
+
+    setup.getStateSpace()->registerProjection("AUVProjection",allocGeometricStateProjector(setup.getStateSpace(),
+    	guillermo::Motion_2_5D, setup.getGeometricComponentStateSpace(),
+    	setup.getGeometricStateExtractor()));
+
+    printf ("FIN setup\n");
+}
+
+ompl::base::PlannerPtr myESTConfiguredPlanner(AUV_Torpedo& setup, double range)
+{
+    ompl::control::EST *est = new ompl::control::EST(setup.getSpaceInformation());
+    est->setRange(range);
+    est->setProjectionEvaluator("AUVProjection");
+    return ompl::base::PlannerPtr(est);
 }
 
 
-void AUV_TorpedoDemo(AUV_Torpedo& setup)
+void AUV_TorpedoDemo(AUV_Torpedo& setup, YAML::Node config)
 {
-	base::PlannerPtr planner (new control::EST(setup.getSpaceInformation()));
-	planner->as<ompl::control::EST>()->setRange(500);
-	setup.setPlanner(planner);
-	//setup.setPlanner(base::PlannerPtr(new control::RRT(setup.getSpaceInformation())));
-	//setup.setPlanner(base::PlannerPtr(new guillermo::RRT(setup.getSpaceInformation())));
-	//setup.setPlanner(base::PlannerPtr(new control::SyclopRRT(setup.getSpaceInformation())));
+
+	std:string planner_str = config["plan/planner"].as<std::string>();
+
+	if (planner_str.compare("RRT") == 0){
+		setup.setPlanner(base::PlannerPtr(new control::RRT(setup.getSpaceInformation())));		
+	}else if (planner_str.compare("EST") == 0){
+		base::PlannerPtr planner = myESTConfiguredPlanner(setup, config["plan/ESTrange"].as<double>());
+		setup.setPlanner(planner);
+	}else if (planner_str.compare("KPIECE1") == 0){
+		setup.setPlanner(base::PlannerPtr(new control::KPIECE1(setup.getSpaceInformation())));
+	}else if (planner_str.compare("SyclopRRT") == 0){
+		//setup.setPlanner(base::PlannerPtr(new control::SyclopRRT(setup.getSpaceInformation())));
+	}else if (planner_str.compare("") == 0){
+		
+	}
 
 	setup.setup();
 
@@ -105,20 +130,16 @@ void AUV_TorpedoDemo(AUV_Torpedo& setup)
 	std::fstream benchmarkFile;
 	std::ofstream benchmarkWithQuatFile;
 	std::ofstream benchmarkControls;
-  	benchmarkFile.open ("benchmarkDebug.txt", std::fstream::in | std::fstream::out | std::fstream::trunc);
+  	benchmarkFile.open (config["plan/solutionFile"].as<std::string>(), std::fstream::in | std::fstream::out | std::fstream::trunc);
 
 	// try to solve the problem
-	if (setup.solve(150))
+	if (setup.solve(config["plan/time"].as<double>()))
 	{
-		// print the (approximate) solution path: print states along the path
-		// and controls required to get from one state to the next
 
 		control::PathControl& path(setup.getSolutionPath());
-		//path.interpolate(); // uncomment if you want to plot the path
 		path.printAsMatrix(std::cout);
 		path.interpolate(); // uncomment if you want to plot the path
 		path.printAsMatrix(benchmarkFile);
-		//path.printAsMatrix(std::cout);
 		if (!setup.haveExactSolutionPath())
 		{
 			std::cout << "Solution is approximate. Distance to actual goal is " <<
@@ -129,15 +150,14 @@ void AUV_TorpedoDemo(AUV_Torpedo& setup)
 		}
 	}
 
-  	benchmarkWithQuatFile.open ("benchmarkWithQuatDebug.txt", std::fstream::out | std::fstream::trunc);
-  	benchmarkControls.open ("benchmarkControls.txt", std::fstream::out | std::fstream::trunc);
+  	benchmarkWithQuatFile.open (config["plan/solutionQuatFile"].as<std::string>(), std::fstream::out | std::fstream::trunc);
+  	benchmarkControls.open (config["plan/solutionControlsFile"].as<std::string>(), std::fstream::out | std::fstream::trunc);
 
     benchmarkFile.seekg (0, ios::beg);
     double num = 0.0;
     int index = 0;
 	while(benchmarkFile >> num){
 		index++;
-		//std::cout << index << " " << num << std::endl;
 
 		switch(index){
 			case 1:
@@ -188,27 +208,20 @@ void AUV_TorpedoDemo(AUV_Torpedo& setup)
   	benchmarkControls.close();
 }
 
-
-ompl::base::PlannerPtr myESTConfiguredPlanner(AUV_Torpedo& setup, double range)
+void AUV_TorpedoBenchmark(AUV_Torpedo& setup, YAML::Node config)
 {
-    ompl::control::EST *est = new ompl::control::EST(setup.getSpaceInformation());
-    est->setRange(range);
-    return ompl::base::PlannerPtr(est);
-}
 
+	double runtime = config["benchmark/runtime"].as<double>();
+	double runmemory = config["benchmark/runmemory"].as<double>();
+	double runcount = config["benchmark/runcount"].as<double>();
 
+	tools::Benchmark::Request request(runtime, runmemory, runcount); 
+	request.displayProgress = config["benchmark/displayProgress"].as<bool>();
+	request.useThreads = config["benchmark/useThreads"].as<bool>();
 
-void AUV_TorpedoBenchmark(AUV_Torpedo& setup)
-{
-	tools::Benchmark::Request request(180., 10000., 1); // runtime (s), memory (MB), run count
-	//tools::Benchmark::Request request(100., 10000., 1); // runtime (s), memory (MB), run count
-	request.displayProgress = true;
-	request.useThreads = true;
+    setup.setup();
 
-
-    setup.setup ();
-
-    tools::Benchmark b(setup, "ESTtest"/*setup.getName()*/);
+    tools::Benchmark b(setup, config["benchmark/testname"].as<std::string>());
     //b.addExperimentParameter("save_paths", "INTEGER", "10")
     //b.addPlanner(base::PlannerPtr(new guillermo::RRT(setup.getSpaceInformation())));
     /*b.addPlanner(base::PlannerPtr(new control::RRT(setup.getSpaceInformation())));
@@ -220,24 +233,53 @@ void AUV_TorpedoBenchmark(AUV_Torpedo& setup)
 	//b.addPlanner(base::PlannerPtr(new control::SyclopEST(setup.getSpaceInformation())));
 	//b.addPlanner(base::PlannerPtr(new geometric::RRTConnect(setup.getSpaceInformation())));
 
+    //std::vector<std::string> planners_v= config["benchmark/planners"];
+    for(int it = 0; it < config["benchmark/planners"].size();it++) {
 
+	   std::string value = config["benchmark/planners"][it].as<std::string>();
 
-	b.addPlannerAllocator(std::bind(&myESTConfiguredPlanner, setup ,10));
-	b.addPlannerAllocator(std::bind(&myESTConfiguredPlanner, setup ,50));
-	b.addPlannerAllocator(std::bind(&myESTConfiguredPlanner, setup ,75));
-	b.addPlannerAllocator(std::bind(&myESTConfiguredPlanner, setup ,100));
-	b.addPlannerAllocator(std::bind(&myESTConfiguredPlanner, setup ,250));
-	b.addPlannerAllocator(std::bind(&myESTConfiguredPlanner, setup ,500));
-	b.addPlannerAllocator(std::bind(&myESTConfiguredPlanner, setup ,750));
-	b.addPlannerAllocator(std::bind(&myESTConfiguredPlanner, setup ,1000));
+	   if (value.compare("RRT") == 0)
+	   {
+	   		b.addPlanner(base::PlannerPtr(new control::RRT(setup.getSpaceInformation())));
+	   		printf("Planificador RRT añadido al benchmark\n");
+	   }else if (value.compare("EST") == 0)
+	   {
+	   		for(int it_est = 0; it_est < config["benchmark/ESTrange"].size();it_est++) {
+	   			double value_est = config["benchmark/ESTrange"][it_est].as<double>();
+	   			b.addPlannerAllocator(std::bind(&myESTConfiguredPlanner, setup ,value_est));
+	   			printf("Planificador EST añadido al benchmark, range = %f\n",value_est);
+	   		}
+	   }else if (value.compare("KPIECE1") == 0)
+	   {
+	   		b.addPlanner(base::PlannerPtr(new control::KPIECE1(setup.getSpaceInformation())));
+	   		printf("Planificador KPIECE1 añadido al benchmark\n");
+	   }else if (value.compare("PDST") == 0)
+	   {
+	   		b.addPlanner(base::PlannerPtr(new control::PDST(setup.getSpaceInformation())));
+	   		printf("Planificador PDST añadido al benchmark\n");
+	   }else if (value.compare("SyclopRRT") == 0)
+	   {
+	   		
+	   }else if (value.compare("SyclopEST") == 0)
+	   {
+	   		
+	   }
+	   
+	}
+
     b.benchmark(request);
-    b.saveResultsToFile();
+    b.saveResultsToFile(config["benchmark/resultsFile"].as<std::string>().c_str());
 }
 
-void moveAUV(AUV_Torpedo& setup, double t1, double t2, double t3, double tiempo){
+void moveAUV(AUV_Torpedo& setup, YAML::Node config){
 
+	setup.setup();
+	double t1 = config["dynamics/th1"].as<double>();
+	double t2 = config["dynamics/th2"].as<double>();
+	double t3 = config["dynamics/th3"].as<double>();
+	double tiempo = config["dynamics/time"].as<double>();
 	printf("[moveAUV] Init\n");
-	//setup.setup();
+
 	base::State *state; 
 	state = setup.getSpaceInformation()->allocState();
 	state->as<base::RealVectorStateSpace::StateType>()->values[0] = 0.0;
@@ -321,31 +363,21 @@ int main(int argc, char** argv)
 	if (argc < 2){
 		printf("Por favor, introduzca una de las opciones para ejecutar el programa.\n");
 		return 0;
+	}else if(argc < 3){
+		printf("Por favor, introduzca el fichero de configuracion.\n");
+		return 0;
 	}else{
 
-		//std::string env_fname =   "/home/guillermo/workspace_tfm/resources/entorno_columnas_x+90.dae";
-		std::string env_fname =   "/home/guillermo/workspace_tfm/resources/entorno_vacio_x+90.dae";
-		//std::string robot_fname = "/home/guillermo/workspace_tfm/resources/cilinder_AUV.dae";
-		std::string robot_fname = "/home/guillermo/workspace_tfm/resources/freeCAD/cilindro_0_1.dae";
+		YAML::Node config = YAML::LoadFile(argv[2]);
+
+		std::string env_fname 	=   config["general/env_file"].as<std::string>();
+		std::string robot_fname = 	config["general/robot_file"].as<std::string>();
+
 		AUV_Torpedo setup;
 
 		if(strcmp(argv[1],"-d") == 0){
-
-			if(argc < 6){
-				printf("Por favor, introduzca las tres actuaciones y el tiempo de duración para ejecutar la dinámica.\n");
-				return 0;
-			}
-
-			double t1 = atof(argv[2]);
-			double t2 = atof(argv[3]);
-			double t3 = atof(argv[4]);
-			double tiempo = atof(argv[5]);
-
-			//if(argc == 7 && strcmp(argv[6],"-v") == 0) verbose = 1;
-
-			//AUV_TorpedoSetup(setup);
-			setup.setup();
-			moveAUV(setup, t1, t2, t3, tiempo);	
+			AUV_TorpedoSetup(setup,config);
+			moveAUV(setup, config);	
 
 		}else if(strcmp(argv[1],"-p") == 0){
 
@@ -358,8 +390,8 @@ int main(int argc, char** argv)
 
 		    setup.setEnvironmentMesh(env_fname.c_str());
 			setup.setRobotMesh(robot_fname.c_str());
-			AUV_TorpedoSetup(setup);
-			AUV_TorpedoDemo(setup);
+			AUV_TorpedoSetup(setup,config);
+			AUV_TorpedoDemo(setup,config);
 
 		}else if(strcmp(argv[1],"-b") == 0){
 
@@ -372,8 +404,8 @@ int main(int argc, char** argv)
 			
 		    setup.setEnvironmentMesh(env_fname.c_str());
 			setup.setRobotMesh(robot_fname.c_str());
-			AUV_TorpedoSetup(setup);
-			AUV_TorpedoBenchmark(setup);
+			AUV_TorpedoSetup(setup,config);
+			AUV_TorpedoBenchmark(setup,config);
 
 		}else if(strcmp(argv[1],"-s") == 0){
 
@@ -384,7 +416,7 @@ int main(int argc, char** argv)
 
 		    setup.setEnvironmentMesh(env_fname.c_str());
 			setup.setRobotMesh(robot_fname.c_str());
-			AUV_TorpedoSetup(setup);
+			AUV_TorpedoSetup(setup,config);
 
 		}else{
 			printf("Opción desconocida.\n");
@@ -394,35 +426,4 @@ int main(int argc, char** argv)
 
 	return 0;
 
-/*
-
-	 char cCurrentPath[FILENAME_MAX];
-
-	 if (!GetCurrentDir(cCurrentPath, sizeof(cCurrentPath)))
-	     {
-	     return errno;
-	     }
-
-	cCurrentPath[sizeof(cCurrentPath) - 1] = '\0'; /* not really required */
-/*
-	printf ("The current working directory is %s\n", cCurrentPath);
-	printf ("The OMPL RESOURCE directory is %s\n", std::string(OMPLAPP_RESOURCE_DIR).c_str());
-
-	AUV_Torpedo setup;
-	std::string env_fname =   "/home/guillermo/workspace_tfm/resources/entorno_vacio.dae";
-	std::string robot_fname = "/home/guillermo/workspace_tfm/resources/cilinder_AUV.dae";
-    setup.setEnvironmentMesh(env_fname.c_str());
-	setup.setRobotMesh(robot_fname.c_str());
-	//std::string robot_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/cubicles_robot.dae";
-    //std::string env_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/cubicles_env.dae";
-
-
-	//moveAUV(setup);
-
-
-	AUV_TorpedoSetup(setup);
-
-	AUV_TorpedoDemo(setup);
-	//AUV_TorpedoBenchmark(setup);
-	return 0;*/
 }

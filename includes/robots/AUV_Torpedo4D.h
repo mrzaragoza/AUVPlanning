@@ -3,6 +3,7 @@
 
 #include <array>
 #include <math.h>
+#include "yaml-cpp/yaml.h"
 #include "colisionador/AppBase.h"
 #include <ompl/base/spaces/SE3StateSpace.h>
 #include <ompl/control/ODESolver.h>

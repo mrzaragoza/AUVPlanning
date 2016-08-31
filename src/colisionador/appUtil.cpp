@@ -37,11 +37,11 @@ void ompl::guillermo::InferProblemDefinitionBounds(const ompl::base::ProblemDefi
             break;
     }
 
-    printf("InferProblemDefinitionBounds-----------------------\n");
+    /*printf("InferProblemDefinitionBounds-----------------------\n");
     printf("bound x: %f -- %f\n", bounds.low[0], bounds.high[0]);
     printf("bound y: %f -- %f\n", bounds.low[1], bounds.high[1]);
     printf("bound z: %f -- %f\n", bounds.low[2], bounds.high[2]);
-    printf("-----------------------\n");
+    printf("-----------------------\n");*/
 
     std::vector<const ompl::base::State*> states;
     pdef->getInputStates(states);
@@ -109,10 +109,10 @@ void ompl::guillermo::InferProblemDefinitionBounds(const ompl::base::ProblemDefi
     }else
         space->as<ompl::base::SE2StateSpace>()->setBounds(bounds);
 
-    printf("bound x: %f -- %f\n", bounds.low[0], bounds.high[0]);
+    /*printf("bound x: %f -- %f\n", bounds.low[0], bounds.high[0]);
     printf("bound y: %f -- %f\n", bounds.low[1], bounds.high[1]);
     printf("bound z: %f -- %f\n", bounds.low[2], bounds.high[2]);
-    printf("-----------------------\n");
+    printf("-----------------------\n");*/
 }
 
 void ompl::guillermo::InferEnvironmentBounds(const ompl::base::StateSpacePtr &space, const RigidBodyGeometry &rbg)
@@ -131,10 +131,10 @@ void ompl::guillermo::InferEnvironmentBounds(const ompl::base::StateSpacePtr &sp
             bounds = space->as<ompl::base::SE3StateSpace>()->getBounds();
             break;
     }
-    printf("InferEnvironmentBounds-----------------------\n");
+    /*printf("InferEnvironmentBounds-----------------------\n");
     printf("bound x: %f -- %f\n", bounds.low[0], bounds.high[0]);
     printf("bound y: %f -- %f\n", bounds.low[1], bounds.high[1]);
-    printf("bound z: %f -- %f\n", bounds.low[2], bounds.high[2]);
+    printf("bound z: %f -- %f\n", bounds.low[2], bounds.high[2]);*/
     // if bounds are not valid
     if (bounds.getVolume() < std::numeric_limits<double>::epsilon())
     {
@@ -146,11 +146,11 @@ void ompl::guillermo::InferEnvironmentBounds(const ompl::base::StateSpacePtr &sp
             space->as<ompl::base::SE3StateSpace>()->setBounds(rbg.inferEnvironmentBounds());
     }
 
-    printf("-----------------------\n");
+    /*printf("-----------------------\n");
     printf("bound x: %f -- %f\n", space->as<ompl::base::RealVectorStateSpace>()->getBounds().low[0], space->as<ompl::base::RealVectorStateSpace>()->getBounds().high[0]);
     printf("bound y: %f -- %f\n", space->as<ompl::base::RealVectorStateSpace>()->getBounds().low[1], space->as<ompl::base::RealVectorStateSpace>()->getBounds().high[1]);
     printf("bound z: %f -- %f\n", space->as<ompl::base::RealVectorStateSpace>()->getBounds().low[2], space->as<ompl::base::RealVectorStateSpace>()->getBounds().high[2]);
-    printf("-----------------------\n");
+    printf("-----------------------\n");*/
 }
 
 namespace ompl

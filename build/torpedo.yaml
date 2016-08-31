@@ -1,0 +1,9 @@
+torpedo/mass: 43 #34.5
+torpedo/lengths: [1.76, 0.1, 0.183, 0.183]
+torpedo/long_fluid_displaced : 1
+torpedo/f_espuma: 10.9
+torpedo/rbMassCoefficients: [43, 43, 43, 8.0]
+torpedo/aMassCoefficients: [ 4.3, 4.3, 4.3, 0.8]
+torpedo/dampingCoefficients: [1.0, 14.0, 14.0, 6.0]
+torpedo/quadraticDampingCoefficients: [3.0, 14.0, 14.0, 8.0]
+#torpedo/:

@@ -1,0 +1,35 @@
+general/propStepSize: 0.1
+general/minControlDuration: 25
+general/maxControlDuration: 500
+general/checkresolution: 0.1
+general/distanceToGoal: 3
+
+general/start: [600, 120, 100, 0, 0, 0, 0, 0]
+general/goal:  [550, 330, 115, 0, 0, 0, 0, 0]
+general/env_file: "/home/guillermo/workspace_tfm/resources/entorno_vacio_x+90.dae" #"/home/guillermo/workspace_tfm/resources/entorno_columnas_x+90.dae" 
+general/robot_file: "/home/guillermo/workspace_tfm/resources/freeCAD/cilindro_0_1.dae" #"/home/guillermo/workspace_tfm/resources/cilinder_AUV.dae"
+
+dynamics/time: 20
+dynamics/th1: 0.6
+dynamics/th2: 0.40
+dynamics/th3: 0.80
+
+plan/time: 180
+plan/solutionFile: "benchmarkDebug.txt"
+plan/solutionQuatFile: "benchmarkWithQuatDebug.txt"
+plan/solutionControlsFile: "benchmarkControls.txt"
+plan/planner: "EST"
+plan/ESTrange: 10
+
+benchmark/testname: "ESTtest"
+benchmark/resultsFile: "benchmarkESTConProjeccion3D.log"
+benchmark/runtime: 180
+benchmark/runmemory: 10000
+benchmark/runcount: 15
+benchmark/planners: ["EST"]
+benchmark/ESTrange: [10, 50, 75, 100, 250, 500, 750, 1000]
+benchmark/displayProgress: true
+benchmark/useThreads: true
+
+
+
