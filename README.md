@@ -12,6 +12,7 @@ Una vez esté instalado OMPL.app, comprobar que con éste se han instalado las s
 - [Boost]
 - [FCL]
 - [ASSIMP]
+- [YAML-CPP]
 
 ## Instrucciones de uso
 El directorio está dividido en las carpetas /src, /includes y /resources.
@@ -42,3 +43,4 @@ $ ./AUVTorpedoBenchmark
 [assimp]: <http://www.assimp.org/>
 [ompl]: <http://ompl.kavrakilab.org>
 [OMPL.app]: <http://ompl.kavrakilab.org/download.html>
+[YAML-CPP]: <https://github.com/jbeder/yaml-cpp/>
