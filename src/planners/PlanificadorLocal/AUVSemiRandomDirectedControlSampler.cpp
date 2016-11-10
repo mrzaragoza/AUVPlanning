@@ -1,105 +1,104 @@
-#include "planners/PlanificadorLocal/PlanificadorLocal.h"
+#include "planners/PlanificadorLocal/AUVSemiRandomDirectedControlSampler.h"
 
-ompl::guillermo::MuestreadorControl * ompl::guillermo::PlanificadorLocal::PlanificadorLocal::mc_ = NULL;
+ompl::auvplanning::MuestreadorControl * ompl::auvplanning::AUVSemiRandomDirectedControlSampler::AUVSemiRandomDirectedControlSampler::mc_ = NULL;
 
-ompl::guillermo::PlanificadorLocal::PlanificadorLocal(const control::SpaceInformation *si, unsigned int k, base::State *start, base::State *goal) :
-    control::DirectedControlSampler(si), numControlSamples_(k), csp_(si->getControlSpace())
+ompl::auvplanning::AUVSemiRandomDirectedControlSampler::AUVSemiRandomDirectedControlSampler(const control::SpaceInformation *si, unsigned int k, YAML::Node config) :
+control::DirectedControlSampler(si), numControlSamples_(k), csp_(si->getControlSpace())
 {
-    //csp_ = si->getControlSpace();!!!!!!!!
-
-    //const control::RealVectorControlSpace *aux = csp_->as<ompl::control::RealVectorControlSpace>();
-    //MuestreadorControl mc_(aux);
-    //control::ControlSamplerAllocator mc_ = new MuestreadorControl(&aux);
-    //csp_->setControlSamplerAllocator(boost::bind(&ompl::guillermo::MuestreadorControl::MuestreadorControlAllocator, _1));
-    //csp_->setControlSamplerAllocator(MuestreadorControlAllocator(mc_));
-    //cs_  = si->allocControlSampler();
-    //typedef boost::function<ControlSamplerPtr(const ControlSpace*)> ControlSamplerAllocator;
     mca = boost::bind(MuestreadorControlAllocator, csp_.get());    
     csp_->setControlSamplerAllocator(mca);
     if(mc_ == NULL)  mc_  = (MuestreadorControl * )si->allocControlSampler().get();
 
     base::State *stateGoal;
     base::State *stateStart;
-    if(goal != NULL){
-        stateGoal = si->allocState();
-        stateGoal->as<base::RealVectorStateSpace::StateType>()->values[0] = 10/*550/*goal->as<base::RealVectorStateSpace::StateType>()->values[0]*/;
-        stateGoal->as<base::RealVectorStateSpace::StateType>()->values[1] = 10/*330/*goal->as<base::RealVectorStateSpace::StateType>()->values[1]*/;
-        stateGoal->as<base::RealVectorStateSpace::StateType>()->values[2] = 10/*115/*goal->as<base::RealVectorStateSpace::StateType>()->values[2]*/;
-        stateGoal->as<base::RealVectorStateSpace::StateType>()->values[3] = 0/*goal->as<base::RealVectorStateSpace::StateType>()->values[3]*/;
-        stateGoal->as<base::RealVectorStateSpace::StateType>()->values[4] = 0/*goal->as<base::RealVectorStateSpace::StateType>()->values[4]*/;
-        stateGoal->as<base::RealVectorStateSpace::StateType>()->values[5] = 0/*goal->as<base::RealVectorStateSpace::StateType>()->values[5]*/;
-        stateGoal->as<base::RealVectorStateSpace::StateType>()->values[6] = 0/*goal->as<base::RealVectorStateSpace::StateType>()->values[6]*/;
-        stateGoal->as<base::RealVectorStateSpace::StateType>()->values[7] = 0/*goal->as<base::RealVectorStateSpace::StateType>()->values[7]*/;
-        setGoal(stateGoal);
+    stateGoal = si->allocState();
+    stateGoal->as<base::RealVectorStateSpace::StateType>()->values[0] = config["general/goal"][0].as<double>();
+    stateGoal->as<base::RealVectorStateSpace::StateType>()->values[1] = config["general/goal"][1].as<double>();
+    stateGoal->as<base::RealVectorStateSpace::StateType>()->values[2] = config["general/goal"][2].as<double>();
+    stateGoal->as<base::RealVectorStateSpace::StateType>()->values[3] = config["general/goal"][3].as<double>();
+    stateGoal->as<base::RealVectorStateSpace::StateType>()->values[4] = config["general/goal"][4].as<double>();
+    stateGoal->as<base::RealVectorStateSpace::StateType>()->values[5] = config["general/goal"][5].as<double>();
+    stateGoal->as<base::RealVectorStateSpace::StateType>()->values[6] = config["general/goal"][6].as<double>();
+    stateGoal->as<base::RealVectorStateSpace::StateType>()->values[7] = config["general/goal"][7].as<double>();
+    printf("%f %f %f %f %f %f %f %f \n",
+        stateGoal->as<base::RealVectorStateSpace::StateType>()->values[0],
+        stateGoal->as<base::RealVectorStateSpace::StateType>()->values[1],
+        stateGoal->as<base::RealVectorStateSpace::StateType>()->values[2],
+        stateGoal->as<base::RealVectorStateSpace::StateType>()->values[3],
+        stateGoal->as<base::RealVectorStateSpace::StateType>()->values[4],
+        stateGoal->as<base::RealVectorStateSpace::StateType>()->values[5],
+        stateGoal->as<base::RealVectorStateSpace::StateType>()->values[6],
+        stateGoal->as<base::RealVectorStateSpace::StateType>()->values[7]);
+    setGoal(stateGoal);
+    stateStart = si->allocState();
+    stateStart->as<base::RealVectorStateSpace::StateType>()->values[0] = config["general/start"][0].as<double>();
+    stateStart->as<base::RealVectorStateSpace::StateType>()->values[1] = config["general/start"][1].as<double>();
+    stateStart->as<base::RealVectorStateSpace::StateType>()->values[2] = config["general/start"][2].as<double>();
+    stateStart->as<base::RealVectorStateSpace::StateType>()->values[3] = config["general/start"][3].as<double>();
+    stateStart->as<base::RealVectorStateSpace::StateType>()->values[4] = config["general/start"][4].as<double>();
+    stateStart->as<base::RealVectorStateSpace::StateType>()->values[5] = config["general/start"][5].as<double>();
+    stateStart->as<base::RealVectorStateSpace::StateType>()->values[6] = config["general/start"][6].as<double>();
+    stateStart->as<base::RealVectorStateSpace::StateType>()->values[7] = config["general/start"][7].as<double>();
+    printf("%f %f %f %f %f %f %f %f \n",
+        stateStart->as<base::RealVectorStateSpace::StateType>()->values[0],
+        stateStart->as<base::RealVectorStateSpace::StateType>()->values[1],
+        stateStart->as<base::RealVectorStateSpace::StateType>()->values[2],
+        stateStart->as<base::RealVectorStateSpace::StateType>()->values[3],
+        stateStart->as<base::RealVectorStateSpace::StateType>()->values[4],
+        stateStart->as<base::RealVectorStateSpace::StateType>()->values[5],
+        stateStart->as<base::RealVectorStateSpace::StateType>()->values[6],
+        stateStart->as<base::RealVectorStateSpace::StateType>()->values[7]);
+    setStart(stateStart);
     }
-    if(start != NULL){
-        stateStart = si->allocState();
-        stateStart->as<base::RealVectorStateSpace::StateType>()->values[0] = 0/*600/*start->as<base::RealVectorStateSpace::StateType>()->values[0]*/;
-        stateStart->as<base::RealVectorStateSpace::StateType>()->values[1] = 0/*120/*start->as<base::RealVectorStateSpace::StateType>()->values[1]*/;
-        stateStart->as<base::RealVectorStateSpace::StateType>()->values[2] = 0/*100/*start->as<base::RealVectorStateSpace::StateType>()->values[2]*/;
-        stateStart->as<base::RealVectorStateSpace::StateType>()->values[3] = 0/*start->as<base::RealVectorStateSpace::StateType>()->values[3]*/;
-        stateStart->as<base::RealVectorStateSpace::StateType>()->values[4] = 0/*start->as<base::RealVectorStateSpace::StateType>()->values[4]*/;
-        stateStart->as<base::RealVectorStateSpace::StateType>()->values[5] = 0/*start->as<base::RealVectorStateSpace::StateType>()->values[5]*/;
-        stateStart->as<base::RealVectorStateSpace::StateType>()->values[6] = 0/*start->as<base::RealVectorStateSpace::StateType>()->values[6]*/;
-        stateStart->as<base::RealVectorStateSpace::StateType>()->values[7] = 0/*start->as<base::RealVectorStateSpace::StateType>()->values[7]*/;
-        setStart(stateStart);
-    }
-}
 
-ompl::guillermo::PlanificadorLocal::~PlanificadorLocal()
+ompl::auvplanning::AUVSemiRandomDirectedControlSampler::~AUVSemiRandomDirectedControlSampler()
 {
 }
 
-ompl::control::ControlSamplerPtr ompl::guillermo::PlanificadorLocal::MuestreadorControlAllocator(const ompl::control::ControlSpace *sp)
+ompl::control::ControlSamplerPtr ompl::auvplanning::AUVSemiRandomDirectedControlSampler::MuestreadorControlAllocator(const ompl::control::ControlSpace *sp)
 {
-    printf("MuestreadorControlAllocator llamado\n");
-    fflush(stdout);
+    /*printf("AUVSemiRandomDirectedControlSampler::MuestreadorControlAllocator llamado\n");
+    fflush(stdout);*/
 
     if(mc_ != NULL){
-        printf("mc_ distinto de NULL\n");
-        fflush(stdout);
+        /*printf("mc_ distinto de NULL\n");
+        fflush(stdout);*/
         return ompl::control::ControlSamplerPtr(mc_);
     }
     else{
-        printf("mc_ igual a NULL    \n");
-        fflush(stdout);
+        /*printf("mc_ igual a NULL    \n");
+        fflush(stdout);*/
         return ompl::control::ControlSamplerPtr(new MuestreadorControl(sp));
     }
 }
 
-
-ompl::control::DirectedControlSamplerPtr ompl::guillermo::PlanificadorLocal::PlanificadorLocalAllocator(const ompl::control::SpaceInformation *si, unsigned int k, base::State *start, base::State *goal)
-{
-    return ompl::control::DirectedControlSamplerPtr(new PlanificadorLocal(si, k, start, goal));
-}
-
-unsigned int ompl::guillermo::PlanificadorLocal::sampleTo(control::Control *control, const base::State *source, base::State *dest)
+unsigned int ompl::auvplanning::AUVSemiRandomDirectedControlSampler::sampleTo(control::Control *control, const base::State *source, base::State *dest)
 {
     return getBestControl(control, source, dest);
 }
 
-unsigned int ompl::guillermo::PlanificadorLocal::sampleTo(control::Control *control, const control::Control *previous, const base::State *source, base::State *dest)
+unsigned int ompl::auvplanning::AUVSemiRandomDirectedControlSampler::sampleTo(control::Control *control, const control::Control *previous, const base::State *source, base::State *dest)
 {
     return getBestControl(control, source, dest);
 }
 
-unsigned int ompl::guillermo::PlanificadorLocal::getBestControl (control::Control *control, const base::State *source, base::State *dest)
+unsigned int ompl::auvplanning::AUVSemiRandomDirectedControlSampler::getBestControl (control::Control *control, const base::State *source, base::State *dest)
 {
 
-    printf("getBestControl Inicia!\n");
+    /*printf("getBestControl Inicia!\n");
     fflush(stdout);
 
     std::vector<int> signature;
-    csp_->computeSignature(signature);
+    csp_->computeSignature(signature);*/
 
-    printf("ControlSpace signature: ");
+    /*printf("ControlSpace signature: ");
     fflush(stdout);
     for(int i=0; i<signature.size();i++){
         printf("%d ",signature[i]);
         fflush(stdout);
     }
     printf("\n");
-    fflush(stdout);
+    fflush(stdout);*/
 
     // Sample the first control
     mc_->MuestreadorControl::sample(control, source);
@@ -183,6 +182,21 @@ unsigned int ompl::guillermo::PlanificadorLocal::getBestControl (control::Contro
 
     si_->copyState(dest, bestState);
     si_->freeState(bestState);
+
+
+    /*printf("------------------------------------------\n");
+    printf("Salida PL: control t1: %f\n", control->as<ompl::control::RealVectorControlSpace::ControlType>()->values[0]);
+    printf("Salida PL: control t2: %f\n", control->as<ompl::control::RealVectorControlSpace::ControlType>()->values[1]);
+    printf("Salida PL: control t3: %f\n", control->as<ompl::control::RealVectorControlSpace::ControlType>()->values[2]);
+    printf("Salida PL: dest x: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[0]);
+    printf("Salida PL: dest y: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[1]);
+    printf("Salida PL: dest z: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[2]);
+    printf("Salida PL: dest yaw: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[3]);
+    printf("Salida PL: dest vx: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[4]);
+    printf("Salida PL: dest vy: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[5]);
+    printf("Salida PL: dest vz: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[6]);
+    printf("Salida PL: dest vyaw: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[7]);
+    printf("Salida PL: steps: %d\n", steps);*/
 
     return steps;
 }

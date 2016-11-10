@@ -37,7 +37,7 @@ namespace oa = ompl::app;
 
 namespace ompl
 {
-    namespace guillermo
+    namespace auvplanning
     {
         OMPL_CLASS_FORWARD (FCLMethodWrapper);
 
@@ -52,7 +52,8 @@ namespace ompl
                               const GeometricStateExtractor &se,
                               bool selfCollision,
                               FCLPoseFromStateCallback poseCallback) : extractState_(se), selfCollision_(selfCollision),
-                                                                       poseFromStateCallback_ (poseCallback)
+                                                                       poseFromStateCallback_ (poseCallback),
+                                                                       callCounter_(0)
             {
                 configure (geom);
             }
@@ -65,13 +66,15 @@ namespace ompl
 
             /// \brief Checks whether the given robot state collides with the
             /// environment or itself.
-            virtual bool isValid (const base::State *state) const
+            virtual bool isValid (const base::State *state)
             {
                 fcl::CollisionRequest collisionRequest;
                 fcl::CollisionResult collisionResult;
                 fcl::Quaternion3f rot;
                 fcl::Vec3f pos;
                 fcl::Transform3f transform;
+
+                callCounter_++;
 
                 if (environment_.num_tris > 0)
                 {
@@ -111,7 +114,7 @@ namespace ompl
 
             /// \brief Check the continuous motion between s1 and s2.  If there is a collision
             /// collisionTime will contain the parameterized time to collision in the range [0,1).
-            virtual bool isValid (const base::State *s1, const base::State *s2, double &collisionTime) const
+            virtual bool isValid (const base::State *s1, const base::State *s2, double &collisionTime)
             {
                 fcl::Transform3f transi_beg, transi_end, trans;
                 fcl::Quaternion3f rot;
@@ -119,6 +122,8 @@ namespace ompl
                 fcl::ContinuousCollisionRequest collisionRequest(10, 0.0001, fcl::CCDM_SCREW,
                     fcl::GST_LIBCCD, fcl::CCDC_CONSERVATIVE_ADVANCEMENT);
                 fcl::ContinuousCollisionResult collisionResult;
+
+                callCounter_++;
 
                 // Checking for collision with environment
                 if (environment_.num_tris > 0)
@@ -200,6 +205,14 @@ namespace ompl
                 }
 
                 return minDist;
+            }
+
+            const unsigned int getCallCounter(void) const{
+                return callCounter_;
+            }
+
+            const void resetCallCounter(void) {
+                callCounter_ = 0;
             }
 
          protected:
@@ -304,6 +317,8 @@ namespace ompl
 
             /// \brief Callback to extract translation and rotation from a state
             FCLPoseFromStateCallback    poseFromStateCallback_;
+
+            unsigned int                callCounter_;
         };
     }
 }

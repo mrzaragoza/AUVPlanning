@@ -1,8 +1,0 @@
-function [ v_estado_dot ] = ode4D( v_estado, v_control )
-
-v_control = v_control .* 5;
-v_estado_dot = zeros(1,4);
-x = (v_control(1)+v_control(2)) * cos(v_e
-v_estado_dot(1:4) = [];
-end
-

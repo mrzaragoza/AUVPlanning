@@ -17,19 +17,19 @@
 namespace ompl
 {
 
-    namespace guillermo
+    namespace auvplanning
     {
 
         void InferProblemDefinitionBounds(const base::ProblemDefinitionPtr &pdef, const GeometricStateExtractor &se, double factor, double add,
-                                          unsigned int robotCount, const base::StateSpacePtr &space, MotionModel mtype);
+                                          unsigned int robotCount, const base::StateSpacePtr &space);
         void InferEnvironmentBounds(const base::StateSpacePtr &space, const RigidBodyGeometry &rbg);
 
-        base::ProjectionEvaluatorPtr allocGeometricStateProjector(const base::StateSpacePtr &space, MotionModel mtype,
+        base::ProjectionEvaluatorPtr allocGeometricStateProjector(const base::StateSpacePtr &space,
                                                                   const base::StateSpacePtr &gspace, const GeometricStateExtractor &se);
 
         /** \brief Allocate a default 2D/3D grid decomposition (depending on the MotionModel)
             for use with the SyclopEST and SyclopRRT planners. */
-        control::DecompositionPtr allocDecomposition(const base::StateSpacePtr &space, MotionModel mtype,
+        control::DecompositionPtr allocDecomposition(const base::StateSpacePtr &space,
             const base::StateSpacePtr &gspace);
 
         /** \brief Create an optimization objective. The objective name can be:

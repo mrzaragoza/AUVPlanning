@@ -17,12 +17,16 @@
 
 #include <ompl/base/SpaceInformation.h>
 #include <ompl/base/StateValidityChecker.h>
-#include <ompl/base/spaces/SE2StateSpace.h>
-#include <ompl/base/spaces/SE3StateSpace.h>
 #include <ompl/base/spaces/RealVectorStateSpace.h>
 
 #include "colisionador/FCLMethodWrapper.h"
 #include "colisionador/GeometrySpecification.h"
+
+// FCL Headers
+#include <fcl/collision.h>
+#include <fcl/collision_node.h>
+#include <fcl/traversal/traversal_node_setup.h>
+#include <fcl/continuous_collision.h>
 
 // Boost and STL headers
 #include <boost/shared_ptr.hpp>
@@ -33,75 +37,33 @@ namespace oa = ompl::app;
 
 namespace ompl
 {
-    namespace guillermo
+    namespace auvplanning
     {
-        /// @cond IGNORE
-        template<MotionModel T>
-        struct OMPL_FCL_StateType
-        {
-            typedef ob::SE3StateSpace::StateType type;
-
-            void FCLPoseFromState(fcl::Vec3f &trans, fcl::Quaternion3f &quat, const ob::State *state) const
-            {
-                const type * derived = static_cast <const type*> (state);
-
-                trans.setValue (derived->getX (), derived->getY (), derived->getZ ());
-                quat.getW () = derived->rotation ().w;
-                quat.getX () = derived->rotation ().x;
-                quat.getY () = derived->rotation ().y;
-                quat.getZ () = derived->rotation ().z;
-            }
-        };
-
-        template<>
-        struct OMPL_FCL_StateType<Motion_2_5D>
-        {
-            typedef ob::RealVectorStateSpace::StateType type;
-
-            void FCLPoseFromState (fcl::Vec3f &trans, fcl::Quaternion3f &quat, const ob::State *state) const
-            {
-                static const fcl::Vec3f zaxis(0., 0., 1.); //se pone así porque tiene que ser un vector unitario
-                const type * derived = static_cast <const type*> (state);
-
-                trans.setValue (derived->values[0], derived->values[1], derived->values[2]);
-                //trans.setValue (derived->as<ob::RealVectorStateSpace::StateType>[0], derived->as<ob::RealVectorStateSpace::StateType>[1], derived->as<ob::RealVectorStateSpace::StateType>[2]);
-                //trans.setValue (derived->getValueAddressAtIndex(state,0), derived->getValueAddressAtIndex(state,1), derived->getValueAddressAtIndex(state,2));
-                quat.fromAxisAngle(zaxis, derived->values[3]);
-                //quat.fromAxisAngle(zaxis, derived->as<ob::RealVectorStateSpace::StateType>[3]);
-                //quat.fromAxisAngle(zaxis, derived->getValueAddressAtIndex(state,3));
-            }
-        };
-
-        template<>
-        struct OMPL_FCL_StateType<Motion_2D>
-        {
-            typedef ob::SE2StateSpace::StateType type;
-
-            void FCLPoseFromState (fcl::Vec3f &trans, fcl::Quaternion3f &quat, const ob::State *state) const
-            {
-                static const fcl::Vec3f zaxis(0., 0., 1.);
-                const type * derived = static_cast <const type*> (state);
-
-                trans.setValue (derived->getX (), derived->getY (), 0.0);
-                quat.fromAxisAngle(zaxis, derived->getYaw ());
-            }
-        };
-        /// @endcond
-
+        
         /// \brief Wrapper for FCL collision and distance checking
-        template<MotionModel T>
         class FCLStateValidityChecker : public ob::StateValidityChecker
         {
         public:
             FCLStateValidityChecker (const ob::SpaceInformationPtr &si, const GeometrySpecification &geom,
-                                     const GeometricStateExtractor &se, bool selfCollision) : ob::StateValidityChecker(si),
-                                                                                              fclWrapper_(new FCLMethodWrapper (geom, se, selfCollision, boost::bind (&OMPL_FCL_StateType<T>::FCLPoseFromState, stateConvertor_, _1, _2, _3)))
+                                     const GeometricStateExtractor &se, bool selfCollision) : 
+            ob::StateValidityChecker(si),
+            fclWrapper_(new FCLMethodWrapper (geom, se, selfCollision, boost::bind (&ompl::auvplanning::FCLStateValidityChecker::AUVPoseFromState, this, _1, _2, _3)))
             {
                 specs_.clearanceComputationType = base::StateValidityCheckerSpecs::EXACT;
             }
 
             virtual ~FCLStateValidityChecker (void)
             {
+            }
+
+
+            void AUVPoseFromState (fcl::Vec3f &trans, fcl::Quaternion3f &quat, const ob::State *state)
+            {
+                static const fcl::Vec3f zaxis(0., 0., 1.); //se pone así porque tiene que ser un vector unitario
+                const ob::RealVectorStateSpace::StateType * derived = static_cast <const ob::RealVectorStateSpace::StateType*> (state);
+
+                trans.setValue (derived->values[0], derived->values[1], derived->values[2]);
+                quat.fromAxisAngle(zaxis, derived->values[3]);
             }
 
             /// \brief Checks whether the given robot state collides with the
@@ -122,10 +84,15 @@ namespace ompl
                 return fclWrapper_;
             }
 
-         protected:
+            const unsigned int getCallCounter(void) const{
+                return fclWrapper_->getCallCounter();
+            }
 
-            /// \brief Object to convert a configuration of the robot to a type desirable for FCL
-            OMPL_FCL_StateType<T>       stateConvertor_;
+            const void resetCallCounter(void) {
+                fclWrapper_->resetCallCounter();
+            }
+
+         protected:
 
             /// \brief Wrapper for FCL collision and distance methods
             FCLMethodWrapperPtr         fclWrapper_;

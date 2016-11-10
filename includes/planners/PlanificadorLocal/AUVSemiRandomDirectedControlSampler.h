@@ -1,5 +1,5 @@
-#ifndef OMPL_CONTROL_SIMPLE_DIRECTED_CONTROL_SAMPLER_
-#define OMPL_CONTROL_SIMPLE_DIRECTED_CONTROL_SAMPLER_
+#ifndef OMPL_AUV_SEMIRANDOM_DIRECTED_CONTROL_SAMPLER_
+#define OMPL_AUV_SEMIRANDOM_DIRECTED_CONTROL_SAMPLER_
 
 #include "ompl/control/DirectedControlSampler.h"
 #include "ompl/control/ControlSampler.h"
@@ -7,20 +7,19 @@
 #include "ompl/control/spaces/RealVectorControlSpace.h"
 #include "ompl/control/ControlSpace.h"
 #include "planners/PlanificadorLocal/MuestreadorControl/MuestreadorControl.h"
+#include "yaml-cpp/yaml.h"
 
 namespace ompl
 {
-    namespace guillermo
+    namespace auvplanning
     {
 
-        class PlanificadorLocal : public control::DirectedControlSampler
+        class AUVSemiRandomDirectedControlSampler : public control::DirectedControlSampler
         {
         public:
-            PlanificadorLocal(const control::SpaceInformation *si, unsigned int k = 1, base::State *start=NULL, base::State *goal=NULL);
+            AUVSemiRandomDirectedControlSampler(const control::SpaceInformation *si, unsigned int k = 1, YAML::Node config = YAML::LoadFile("test.yaml"));
 
-            ~PlanificadorLocal();
-
-            static ompl::control::DirectedControlSamplerPtr PlanificadorLocalAllocator(const ompl::control::SpaceInformation *si, unsigned int k, base::State *start, base::State *goal);
+            ~AUVSemiRandomDirectedControlSampler();
 
             unsigned int getNumControlSamples () const
             {

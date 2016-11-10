@@ -1,37 +1,28 @@
 #include "planners/PlanificadorLocal/MuestreadorControl/MuestreadorControl.h"
 
-ompl::base::State  *ompl::guillermo::MuestreadorControl::goal_ = NULL;
-ompl::base::State  *ompl::guillermo::MuestreadorControl::start_ = NULL;
+ompl::base::State  *ompl::auvplanning::MuestreadorControl::goal_ = NULL;
+ompl::base::State  *ompl::auvplanning::MuestreadorControl::start_ = NULL;
 
 
-ompl::guillermo::MuestreadorControl::MuestreadorControl(const ompl::control::ControlSpace *space) : control::ControlSampler::ControlSampler(space),space_mc(space)
+ompl::auvplanning::MuestreadorControl::MuestreadorControl(const ompl::control::ControlSpace *space) : control::ControlSampler::ControlSampler(space),space_mc(space),
+controlZEstable(0.49699768),tiempoBase(50),maxDiferenciaControl(0.5),margenCercania(0.2)
 {
-    /*goal_->as<base::RealVectorStateSpace::StateType>()->values[0] = 0.0;
-    goal_->as<base::RealVectorStateSpace::StateType>()->values[1] = 0.0;
-    goal_->as<base::RealVectorStateSpace::StateType>()->values[2] = 0.0;
-    goal_->as<base::RealVectorStateSpace::StateType>()->values[3] = 0.0;
-    goal_->as<base::RealVectorStateSpace::StateType>()->values[4] = 0.0;
-    goal_->as<base::RealVectorStateSpace::StateType>()->values[5] = 0.0;
-    goal_->as<base::RealVectorStateSpace::StateType>()->values[6] = 0.0;
-    goal_->as<base::RealVectorStateSpace::StateType>()->values[7] = 0.0;*/
-
-    printf("MC constructor!\n");
-    fflush(stdout);
-    cont = 0;
+    //cont = 0;
     controlZEstable = 0.49699768; //En MATLAB: 0.1988;
     tiempoBase      = 50;
     maxDiferenciaControl = 0.5;
     margenCercania = 0.2;
+
 }
 
-void ompl::guillermo::MuestreadorControl::sample(control::Control *control)
+void ompl::auvplanning::MuestreadorControl::sample(control::Control *control)
 {
 	printf("MC ergsergsgeaertaertgaergergergaert!\n");
     fflush(stdout);
     const unsigned int dim = space_mc->getDimension();
 
     if(dim != 3){
-    	printf("ompl::guillermo::MuestreadorControl::sample: Error! El numero de dimensiones no concuerda. Dim = %d\n",dim);
+    	printf("ompl::auvplanning::MuestreadorControl::sample: Error! El numero de dimensiones no concuerda. Dim = %d\n",dim);
     }
 
     const base::RealVectorBounds &bounds = static_cast<const ompl::control::RealVectorControlSpace*>(space_mc)->getBounds();
@@ -40,39 +31,15 @@ void ompl::guillermo::MuestreadorControl::sample(control::Control *control)
 
     for (unsigned int i = 0 ; i < dim ; ++i)
         //newControl->values[i] = rng_.uniformReal(bounds.low[i], bounds.high[i]);/////////////////
-        newControl->values[i] = std::rand()*2-1;/////////////////
+        newControl->values[i] = ((double) std::rand() / RAND_MAX)*2-1;/////////////////
 }
 
-void ompl::guillermo::MuestreadorControl::sample(control::Control *control, const base::State * state)
+void ompl::auvplanning::MuestreadorControl::sample(control::Control *control, const base::State * state)
 {
 
-	//printf("MC sample Inicia!\n");
-    //fflush(stdout);
-    /*std::vector<int> signature;
-    space_mc->computeSignature(signature);
-
-    printf("Space_MC signature: ");
-    fflush(stdout);
-    for(int i=0; i<signature.size();i++){
-        printf("%d ",signature[i]);
-        fflush(stdout);
-    }
-    printf("\n");
-    fflush(stdout);*/
     const unsigned int dim =3;
-    /*const unsigned int dim = space_mc->getDimension();
 
-    if(dim != 3){
-    	printf("ompl::guillermo::MuestreadorControl::sample: Error! El numero de dimensiones no concuerda. Dim = %d\n",dim);
-    }*/
-
-    //printf("MC sample 1!\n");
-    //fflush(stdout);
-
-    //const base::RealVectorBounds &bounds = static_cast<const ompl::control::RealVectorControlSpace*>(space_mc)->getBounds();
-
-    //printf("MC sample 2!\n");
-    //fflush(stdout);
+    const base::RealVectorBounds &bounds = static_cast<const ompl::control::RealVectorControlSpace*>(space_mc)->getBounds();
 
     ompl::control::RealVectorControlSpace::ControlType *newControl = static_cast<ompl::control::RealVectorControlSpace::ControlType*>(control);
 
@@ -86,8 +53,28 @@ void ompl::guillermo::MuestreadorControl::sample(control::Control *control, cons
 	double dist_actual 			= sqrt(pow(diff_x,2) + pow(diff_y,2) );
 	double dist_actual_3D 		= sqrt(pow(diff_x,2) + pow(diff_y,2) + pow(diff_z,2));
 
-	//printf("MC sample 3!\n");
-    //fflush(stdout);
+
+    controlZEstable = 0.49699768; //En MATLAB: 0.1988;
+    tiempoBase      = 50;
+    maxDiferenciaControl = 0.5;
+    margenCercania = 0.2;
+
+	/*printf("***************** goal_->as<base::RealVectorStateSpace::StateType>()->values[0]: %f\n", goal_->as<base::RealVectorStateSpace::StateType>()->values[0]);
+	printf("***************** state->as<base::RealVectorStateSpace::StateType>()->values[0]: %f\n", state->as<base::RealVectorStateSpace::StateType>()->values[0]);
+	printf("***************** goal_->as<base::RealVectorStateSpace::StateType>()->values[1]: %f\n", goal_->as<base::RealVectorStateSpace::StateType>()->values[1]);
+	printf("***************** state->as<base::RealVectorStateSpace::StateType>()->values[1]: %f\n", state->as<base::RealVectorStateSpace::StateType>()->values[1]);
+
+
+
+	printf("***************** diff_x: %f\n", diff_x);
+	printf("***************** diff_y: %f\n", diff_y);
+
+	printf("***************** dist_actual: %f\n", dist_actual);
+	printf("***************** dist_total: %f\n", dist_total);
+
+	printf("***************** dist_actual_3D: %f\n", dist_actual_3D);
+	printf("***************** dist_total_3D: %f\n", dist_total_3D);*/
+
 
 	//Normalización entre 0 y 1 de la distancia actual respecto a la inicial
 	double norm_distancia 		= 0;
@@ -100,78 +87,77 @@ void ompl::guillermo::MuestreadorControl::sample(control::Control *control, cons
 
 	if(diff_z_inicial != 0) norm_distancia_z 	= diff_z / diff_z_inicial;
 
-	/*printf("MC norm_distancia: %f norm_distancia_3D: %f norm_distancia_z: %f\n",norm_distancia,norm_distancia_3D,norm_distancia_z);
-    fflush(stdout);*/
+	/*printf("*****************1 norm_distancia: %f\n", norm_distancia);
+	printf("*****************1 norm_distancia_3D: %f\n", norm_distancia_3D);
+	printf("*****************1 norm_distancia_z: %f\n", norm_distancia_z);*/
+
 	if(norm_distancia > 1) norm_distancia = 1;
 	if(norm_distancia_3D > 1) norm_distancia_3D = 1;
 	if(norm_distancia_z > 1) norm_distancia_z = 1;
 
-	/*printf("MC norm_distancia: %f norm_distancia_3D: %f norm_distancia_z: %f\n",norm_distancia,norm_distancia_3D,norm_distancia_z);
-    fflush(stdout);*/
-
-	//printf("MC sample 4!\n");
-    //fflush(stdout);
+	/*printf("*****************2 norm_distancia: %f\n", norm_distancia);
+	printf("*****************2 norm_distancia_3D: %f\n", norm_distancia_3D);
+	printf("*****************2 norm_distancia_z: %f\n", norm_distancia_z);*/
 
 	//Calculo del ángulo que hay entre el estado actual y el final y la diferencia entre éste y el yaw del vehículo
 	double heading = atan2(diff_y,diff_x); //radianes
 	double diff_heading = heading - state->as<base::RealVectorStateSpace::StateType>()->values[3];
 
 	//double num_aleatorio = rng_.uniformReal(0,1);/////////////////
-	double num_aleatorio = std::rand();/////////////////
-	double aux = 0;
-	double bh = 0;
+	double num_aleatorio = (double) std::rand() / RAND_MAX;/////////////////
+	/*printf("*****************num aleatorio: %f\n", num_aleatorio);
+	printf("*****************maxDiferenciaControl %f\n", maxDiferenciaControl);
+    printf("*****************controlZEstable %f\n", controlZEstable);
+    printf("*****************tiempoBase %d\n", tiempoBase);
+    printf("*****************margenCercania %f\n", margenCercania);*/
 	if(diff_heading > margenCercania){
-		bh = 1;//bh = bounds.high[1];
-		//aux = rng_.uniformReal(0, bh);/////////////////
-		aux = std::rand();/////////////////
-	    double a = num_aleatorio + aux*maxDiferenciaControl/2;
-	    newControl->values[1] = a;
+	    //newControl->values[1] = num_aleatorio + rng_.uniformReal(0, bounds.high[1])*maxDiferenciaControl/2;/////////////////
+	    double aw= num_aleatorio + ((double) std::rand() / RAND_MAX)*maxDiferenciaControl/2;
+	    newControl->values[1] = aw;/////////////////
 	    //newControl->values[2] = num_aleatorio - rng_.uniformReal(0, bounds.high[2])*maxDiferenciaControl/2;/////////////////
-	    newControl->values[2] = num_aleatorio - std::rand()*maxDiferenciaControl/2;/////////////////
-	}else if(diff_heading < -margenCercania){
-		bh = 1;//bh = bounds.high[1];
-		//aux = rng_.uniformReal(0, bh);/////////////////
-		aux = std::rand();/////////////////
-	    double b = num_aleatorio - aux*maxDiferenciaControl/2;
-	    newControl->values[1] = b;
+	    double ay= num_aleatorio - ((double) std::rand() / RAND_MAX)*maxDiferenciaControl/2;
+	    newControl->values[2] = ay;/////////////////
+
+	}else if(diff_heading < -margenCercania){		
+	    //newControl->values[1] = num_aleatorio - rng_.uniformReal(0, bounds.high[1])*maxDiferenciaControl/2;/////////////////
+	    double aq= num_aleatorio - ((double) std::rand() / RAND_MAX)*maxDiferenciaControl/2;
+	    newControl->values[1] = aq;/////////////////
 	    //newControl->values[2] = num_aleatorio + rng_.uniformReal(0, bounds.high[2])*maxDiferenciaControl/2;/////////////////
-	    newControl->values[2] = num_aleatorio + std::rand()*maxDiferenciaControl/2;/////////////////
+	    double as= num_aleatorio + ((double) std::rand() / RAND_MAX)*maxDiferenciaControl/2;
+	    newControl->values[2] = as;/////////////////
+
 	}else{ //diff_heading ~ 0
-		double bl = -1;//bounds.low[1];
-		bh = 1;//bh = bounds.high[1];
-		//aux = rng_.uniformReal(bl, bh);/////////////////
-		aux = std::rand();/////////////////
-	    double c = num_aleatorio + aux*maxDiferenciaControl/8;
-	    newControl->values[1] = c;
+	    //newControl->values[1] = num_aleatorio + rng_.uniformReal(bounds.low[1], bounds.high[1])*maxDiferenciaControl/8;/////////////////
+	    double ad= num_aleatorio + (((double) std::rand() / RAND_MAX)*2-1)*maxDiferenciaControl/8;
+	    newControl->values[1] = ad;/////////////////
 	    //newControl->values[2] = num_aleatorio + rng_.uniformReal(bounds.low[2], bounds.high[2])*maxDiferenciaControl/8;/////////////////
-	    newControl->values[2] = num_aleatorio + (std::rand()*2-1)*maxDiferenciaControl/8;/////////////////
+	    double af= num_aleatorio + (((double) std::rand() / RAND_MAX)*2-1)*maxDiferenciaControl/8;
+	    newControl->values[2] = af;/////////////////
 	}
 
 	if(diff_z > margenCercania){
 	    //newControl->values[0] = rng_.uniformReal(0, bounds.high[0]);/////////////////
-	    newControl->values[0] = std::rand();/////////////////
+	    double ax = ((double) std::rand() / RAND_MAX);
+	    newControl->values[0] = ax;/////////////////
+
 	}else if(diff_z < -margenCercania){
 	    //newControl->values[0] = rng_.uniformReal(bounds.low[0], 0);/////////////////
-	    newControl->values[0] = std::rand()-1;/////////////////
+	    double ax = ((double) std::rand() / RAND_MAX)-1;
+	    newControl->values[0] = ax;/////////////////
+
 	}else{ //diff_z ~ 0
 	    //newControl->values[0] = rng_.uniformReal(bounds.low[0], bounds.high[0]);/////////////////
-	    newControl->values[0] = std::rand()*2-1;/////////////////
-	    newControl->values[0] = newControl->values[0] * 0.1 * controlZEstable;
+	    double ax = (((double) std::rand() / RAND_MAX)*2-1) * 0.1 + controlZEstable;
+	    newControl->values[0] = ax;/////////////////
 	}
 
 	//Se multiplica por la normalización de la distancia, haciendo que cuanto
 	//más cerca se esté del objetivo, los controles sean más pequeños.
 
-	/*printf("MC T1: %f T2: %f T3: %f  Antes de normalización\n",newControl->values[0],newControl->values[1],newControl->values[2]);
-    fflush(stdout);*/
-
 	if(norm_distancia_z != 0 ) newControl->values[0] = newControl->values[0] * norm_distancia_z;
 		    
 	newControl->values[1] = newControl->values[1] * norm_distancia;
 	newControl->values[2] = newControl->values[2] * norm_distancia;
-
-	/*printf("MC T1: %f T2: %f T3: %f\n",newControl->values[0],newControl->values[1],newControl->values[2]);
-    fflush(stdout);*/
 
 	if(newControl->values[0] > 1) newControl->values[0] = 1;
 	else if(newControl->values[0] < -1) newControl->values[0] = -1;
@@ -182,36 +168,37 @@ void ompl::guillermo::MuestreadorControl::sample(control::Control *control, cons
 	if(newControl->values[2] > 1) newControl->values[2] = 1;
 	else if(newControl->values[2] < -1) newControl->values[2] = -1;
 
-	cont++;
+	/*cont++;
 	printf("MC CONT: %d\n",cont);
-    fflush(stdout);
+    fflush(stdout);*/
 	
 }
 
-void ompl::guillermo::MuestreadorControl::sampleNext(control::Control *control, const control::Control * /* previous */)
+void ompl::auvplanning::MuestreadorControl::sampleNext(control::Control *control, const control::Control * /* previous */)
 {
 	printf("MC ababbababababababababababababababa!\n");
     fflush(stdout);
     sample(control);
 }
 
-void ompl::guillermo::MuestreadorControl::sampleNext(control::Control *control, const control::Control * /* previous */, const base::State * state)
+void ompl::auvplanning::MuestreadorControl::sampleNext(control::Control *control, const control::Control * /* previous */, const base::State * state)
 {
 	printf("MC babababababababababababab!\n");
     fflush(stdout);
     sample(control,state);
 }
 
-unsigned int ompl::guillermo::MuestreadorControl::sampleStepCount(unsigned int minSteps, unsigned int maxSteps)
+unsigned int ompl::auvplanning::MuestreadorControl::sampleStepCount(unsigned int minSteps, unsigned int maxSteps)
 {
     //return rng_.uniformInt(minSteps, maxSteps);/////////////////
-    return std::rand()%(maxSteps-minSteps+1)+minSteps;/////////////////
+    return  std::rand() %(maxSteps-minSteps+1)+minSteps;/////////////////
+    //return  (maxSteps+minSteps)/2;/////////////////
 }
 
-void ompl::guillermo::MuestreadorControl::setGoal(base::State *state)
+void ompl::auvplanning::MuestreadorControl::setGoal(base::State *state)
 {
-	printf("MC setGoal!\n");
-    fflush(stdout);
+	/*printf("MC setGoal!\n");
+    fflush(stdout);*/
 
     goal_ = state;
 
@@ -228,17 +215,17 @@ void ompl::guillermo::MuestreadorControl::setGoal(base::State *state)
 	}
 }
 
-ompl::base::State* ompl::guillermo::MuestreadorControl::getGoal()
+ompl::base::State* ompl::auvplanning::MuestreadorControl::getGoal()
 {
-	printf("MC getGoal!\n");
-    fflush(stdout);
+	/*printf("MC getGoal!\n");
+    fflush(stdout);*/
     return goal_;
 }
 
-void ompl::guillermo::MuestreadorControl::setStart(base::State *state)
+void ompl::auvplanning::MuestreadorControl::setStart(base::State *state)
 {
-	printf("MC setStart!\n");
-    fflush(stdout);
+	/*printf("MC setStart!\n");
+    fflush(stdout);*/
     start_ = state;
 
 
@@ -257,9 +244,9 @@ void ompl::guillermo::MuestreadorControl::setStart(base::State *state)
 	}
 }
 
-ompl::base::State* ompl::guillermo::MuestreadorControl::getStart()
+ompl::base::State* ompl::auvplanning::MuestreadorControl::getStart()
 {
-	printf("MC getStart!\n");
-    fflush(stdout);
+	/*printf("MC getStart!\n");
+    fflush(stdout);*/
     return start_;
 }

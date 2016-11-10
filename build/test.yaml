@@ -1,8 +1,8 @@
-general/propStepSize: 0.1
-general/minControlDuration: 25
-general/maxControlDuration: 500
+general/propStepSize: 0.01
+general/minControlDuration: 300
+general/maxControlDuration: 30000
 general/checkresolution: 0.1
-general/distanceToGoal: 3
+general/distanceToGoal: 2
 
 general/start: [600, 120, 100, 0, 0, 0, 0, 0]
 general/goal:  [550, 330, 115, 0, 0, 0, 0, 0]
@@ -11,23 +11,23 @@ general/robot_file: "/home/guillermo/workspace_tfm/resources/freeCAD/cilindro_0_
 
 dynamics/time: 20
 dynamics/th1: 0.6
-dynamics/th2: 0.40
-dynamics/th3: 0.80
+dynamics/th2: 1.0
+dynamics/th3: 1.0
 
 plan/time: 180
 plan/solutionFile: "benchmarkDebug.txt"
 plan/solutionQuatFile: "benchmarkWithQuatDebug.txt"
 plan/solutionControlsFile: "benchmarkControls.txt"
-plan/planner: "EST"
+plan/planner: "DynamicRRT"
 plan/ESTrange: 10
 
-benchmark/testname: "ESTtest"
-benchmark/resultsFile: "benchmarkESTConProjeccion3D.log"
-benchmark/runtime: 180
+benchmark/testname: "REKPTest con PID Sampler"
+benchmark/resultsFile: "benchmarkREKPConPIDSampler.log"
+benchmark/runtime: 15
 benchmark/runmemory: 10000
-benchmark/runcount: 15
-benchmark/planners: ["EST"]
-benchmark/ESTrange: [10, 50, 75, 100, 250, 500, 750, 1000]
+benchmark/runcount: 1
+benchmark/planners: ["RRT","EST","PDST"]
+benchmark/ESTrange: [20] #[10, 50, 75, 100, 250, 500, 750, 1000]
 benchmark/displayProgress: true
 benchmark/useThreads: true
 

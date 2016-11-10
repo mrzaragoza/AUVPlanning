@@ -1,0 +1,20 @@
+torpedo/mass: 43 #34.5
+torpedo/lengths: [1.76, 0.1, 0.183, 0.183]
+torpedo/long_fluid_displaced : 1
+torpedo/f_espuma: 10.9
+torpedo/rbMassCoefficients: [43, 43, 43, 8.0]
+torpedo/aMassCoefficients: [ 4.3, 4.3, 4.3, 0.8]
+torpedo/dampingCoefficients: [1.0, 14.0, 14.0, 6.0]
+torpedo/quadraticDampingCoefficients: [3.0, 14.0, 14.0, 8.0]
+torpedo/controlZEstable: 0.49699768 #En MATLAB 0.1988
+torpedo/Kz: [0.5, 0.5, 0.0001] #Kp, Kd, Ki
+torpedo/Ksurge: [1, 10, 0.0001] #Kp, Kd, Ki
+torpedo/Kyaw: [0.2, 1, 0.0001] #Kp, Kd, Ki
+torpedo/max_fuerza_motores: 20
+
+control/porcentaje_dist_rango_objetivo: 0.01
+control/rango_min_objetivo: 0.3
+control/rango_max_objetivo: 5
+control/porcentaje_dist_profundidad_rango_objetivo: 0.03
+control/rango_profundidad_min_objetivo: 0.5
+control/rango_profundidad_max_objetivo: 1

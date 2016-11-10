@@ -15,9 +15,11 @@
 
 #include "omplapp/config.h"
 #include "colisionador/GeometrySpecification.h"
+#include "colisionador/FCLStateValidityChecker.h"
 #include <ompl/base/SpaceInformation.h>
 #include <ompl/base/spaces/RealVectorBounds.h>
 #include <boost/shared_ptr.hpp>
+#include <boost/lexical_cast.hpp>
 #if OMPL_HAS_ASSIMP3
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
@@ -31,45 +33,20 @@
 namespace ompl
 {
 
-    /** \brief Namespace containing code specific to OMPL.app */
-    namespace guillermo
+    namespace auvplanning
     {
-        /** \brief Enumeration of the possible collision checker types */
-        enum CollisionChecker
-            { PQP, FCL };
-
         class RigidBodyGeometry
         {
         public:
 
             /** \brief Constructor expects a state space that can represent a rigid body */
-            /// \param mtype The motion model (2D or 3D) for the rigid body.
-            /// \param ctype The type of collision checker to use for rigid body planning.
             explicit
-            RigidBodyGeometry(MotionModel mtype, CollisionChecker ctype) : mtype_(mtype), factor_(1.0), add_(0.0), ctype_(ctype)
-            {
-            }
-
-            /// \brief Constructor expects a state space that can represent a rigid body
-            /// \param mtype The motion model (2D or 3D) for the rigid body.
-            /// \remarks This constructor defaults to a PQP state validity checker
-            explicit
-            RigidBodyGeometry(MotionModel mtype) : mtype_(mtype), factor_(1.0), add_(0.0), ctype_(FCL)
+            RigidBodyGeometry() : factor_(1.0), add_(0.0)
             {
             }
 
             virtual ~RigidBodyGeometry(void)
             {
-            }
-
-            MotionModel getMotionModel(void) const
-            {
-                return mtype_;
-            }
-
-            CollisionChecker getCollisionCheckerType(void) const
-            {
-                return ctype_;
             }
 
             bool hasEnvironment(void) const
@@ -82,11 +59,6 @@ namespace ompl
                 return !importerRobot_.empty();
             }
 
-            unsigned int getLoadedRobotCount(void) const
-            {
-                return importerRobot_.size();
-            }
-
             /** \brief Get the robot's center (average of all the vertices of all its parts) */
             aiVector3D getRobotCenter(unsigned int robotIndex) const;
 
@@ -95,21 +67,9 @@ namespace ompl
                 env). Returns 1 on success, 0 on failure. */
             virtual bool setEnvironmentMesh(const std::string &env);
 
-            /** \brief This function specifies the name of the CAD
-                file representing a part of the environment (\e
-                env). Returns 1 on success, 0 on failure. */
-            virtual bool addEnvironmentMesh(const std::string &env);
-
              /** \brief This function specifies the name of the CAD
                  file representing the robot (\e robot). Returns 1 on success, 0 on failure. */
             virtual bool setRobotMesh(const std::string &robot);
-
-             /** \brief This function specifies the name of the CAD
-                file representing a part of the robot (\e robot). Returns 1 on success, 0 on failure. */
-            virtual bool addRobotMesh(const std::string &robot);
-
-            /** \brief Change the type of collision checking for the rigid body */
-            virtual void setStateValidityCheckerType (CollisionChecker ctype);
 
             /** \brief Allocate default state validity checker using PQP. */
             const base::StateValidityCheckerPtr& allocStateValidityChecker(const base::SpaceInformationPtr &si, const GeometricStateExtractor &se, bool selfCollision);
@@ -156,8 +116,6 @@ namespace ompl
 
             void computeGeometrySpecification(void);
 
-            MotionModel         mtype_;
-
             /** \brief The factor to multiply inferred environment bounds by (default 1) */
             double              factor_;
 
@@ -175,9 +133,6 @@ namespace ompl
 
             /** \brief Instance of the state validity checker for collision checking */
             base::StateValidityCheckerPtr validitySvc_;
-
-            /** \brief Value containing the type of collision checking to use */
-            CollisionChecker              ctype_;
 
         };
 

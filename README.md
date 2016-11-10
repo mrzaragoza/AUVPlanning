@@ -3,7 +3,7 @@
 Directorio de código del trabajo final de máster de Guillermo Zaragoza Prous. Este trabajo tiene como fin estudiar los algoritmos de planificación de trayectorias de forma específica para vehículos autónomos submarinos.
 
 ## Version
-1.0
+1.1
 
 ## Instrucciones de instalación
 Para poder utilizar el código, es necesario tener instalada la librería [OMPL.app]. [OMPL] es la librería principal del proyecto, y se utiliza en la versión .app para poder reutilizar parte del código de comprobación de colisiones entre el robot y el entorno.
@@ -35,7 +35,7 @@ $ make
 ```
 Y ejecutar
 ```sh
-$ ./AUVTorpedoBenchmark
+$ ./AUVPlanning
 ```
 
 [boost]: <http://www.boost.org/>

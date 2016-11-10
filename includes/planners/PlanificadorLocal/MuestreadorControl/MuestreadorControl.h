@@ -13,7 +13,7 @@
 
 namespace ompl
 {
-    namespace guillermo
+    namespace auvplanning
     {
 
         class MuestreadorControl : public control::ControlSampler
@@ -45,11 +45,10 @@ namespace ompl
 
         private:
 
-            /** \brief Instance of random number generator */
             RNG                             rng_;
 
-            static base::State                     *goal_;
-            static base::State                     *start_;
+            static base::State              *goal_;
+            static base::State              *start_;
 
             double                          diff_x_inicial;
             double                          diff_y_inicial;

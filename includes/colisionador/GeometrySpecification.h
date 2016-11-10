@@ -25,11 +25,8 @@
 
 namespace ompl
 {
-    namespace guillermo
+    namespace auvplanning
     {
-
-        /// Specify whether bodies are moving in 2D or bodies moving in 3D
-        enum MotionModel { Motion_2D, Motion_3D, Motion_2_5D };
 
         typedef boost::function<const base::State*(const base::State*, unsigned int)> GeometricStateExtractor;
 

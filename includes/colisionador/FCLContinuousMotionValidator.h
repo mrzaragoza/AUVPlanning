@@ -18,14 +18,14 @@
 
 #include "colisionador/FCLMethodWrapper.h"
 #include "colisionador/FCLStateValidityChecker.h"
-#include "colisionador/GeometrySpecification.h"
+//#include "colisionador/GeometrySpecification.h"
 
 namespace ob = ompl::base;
 namespace oa = ompl::app;
 
 namespace ompl
 {
-    namespace guillermo
+    namespace auvplanning
     {
         /// \brief A motion validator that utilizes FCL's continuous collision checking
         class FCLContinuousMotionValidator : public ob::MotionValidator
@@ -126,55 +126,20 @@ namespace ompl
                     throw Exception("No state space for motion validator");
 
                 // Extract FCLWrapper from FCLStateValidityChecker.
-                switch (mm)
+
+                const auvplanning::FCLStateValidityChecker *fcl_state_checker;
+                fcl_state_checker = dynamic_cast <const auvplanning::FCLStateValidityChecker*> (si_->getStateValidityChecker().get ());
+
+                if (!fcl_state_checker)
                 {
-                    case guillermo::Motion_2D:
-                        const guillermo::FCLStateValidityChecker<guillermo::Motion_2D> *fcl_2d_state_checker;
-                        fcl_2d_state_checker = dynamic_cast <const guillermo::FCLStateValidityChecker<guillermo::Motion_2D>* > (si_->getStateValidityChecker ().get ());
-
-                        if (!fcl_2d_state_checker)
-                        {
-                            // Be extra verbose in this fatal error
-                            OMPL_ERROR("Unable to cast state validity checker to FCLStateValidityChecker.");
-                            assert (fcl_2d_state_checker != 0);
-                        }
-
-                        fclWrapper_ = fcl_2d_state_checker->getFCLWrapper ();
-                        break;
-
-
-                    case guillermo::Motion_2_5D:
-                        const guillermo::FCLStateValidityChecker<guillermo::Motion_2_5D> *fcl_2_5d_state_checker;
-                        fcl_2_5d_state_checker = dynamic_cast <const guillermo::FCLStateValidityChecker<guillermo::Motion_2_5D>* > (si_->getStateValidityChecker ().get ());
-
-                        if (!fcl_2_5d_state_checker)
-                        {
-                            // Be extra verbose in this fatal error
-                            OMPL_ERROR("Unable to cast state validity checker to FCLStateValidityChecker.");
-                            assert (fcl_2_5d_state_checker != 0);
-                        }
-
-                        fclWrapper_ = fcl_2_5d_state_checker->getFCLWrapper ();
-                        break;
-
-                    case guillermo::Motion_3D:
-                        const guillermo::FCLStateValidityChecker<guillermo::Motion_3D> *fcl_3d_state_checker;
-                        fcl_3d_state_checker = dynamic_cast <const guillermo::FCLStateValidityChecker<guillermo::Motion_3D>* > (si_->getStateValidityChecker ().get ());
-
-                        if (!fcl_3d_state_checker)
-                        {
-                            // Be extra verbose in this fatal error
-                            OMPL_ERROR("Unable to cast state validity checker to FCLStateValidityChecker.");
-                            assert (fcl_3d_state_checker != 0);
-                        }
-
-                        fclWrapper_ = fcl_3d_state_checker->getFCLWrapper ();
-                        break;
-
-                    default:
-                        OMPL_WARN("Unknown motion model specified: %u", mm);
-                        break;
+                    // Be extra verbose in this fatal error
+                    OMPL_ERROR("Unable to cast state validity checker to FCLStateValidityChecker.");
+                    assert (fcl_state_checker != 0);
                 }
+
+                fclWrapper_ = fcl_state_checker->getFCLWrapper ();
+                break;                  
+
 
                 if (!fclWrapper_)
                 {
