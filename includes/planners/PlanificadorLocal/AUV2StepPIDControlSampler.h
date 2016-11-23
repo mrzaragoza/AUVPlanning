@@ -1,5 +1,5 @@
-#ifndef OMPL_AUV_DIRECTED_CONTROL_SAMPLER_
-#define OMPL_AUV_DIRECTED_CONTROL_SAMPLER_
+#ifndef OMPL_AUV_TWO_STEP_PID_CONTROL_SAMPLER_
+#define OMPL_AUV_TWO_STEP_PID_CONTROL_SAMPLER_
 
 #include "ompl/control/DirectedControlSampler.h"
 #include "ompl/control/ControlSampler.h"
@@ -22,19 +22,9 @@ namespace ompl
         class AUV2StepPIDControlSampler : public control::DirectedControlSampler
         {
         public:
-            AUV2StepPIDControlSampler(const control::SpaceInformation *si, unsigned int k = 1, YAML::Node config = YAML::LoadFile("test.yaml"));
+            AUV2StepPIDControlSampler(const control::SpaceInformation *si, YAML::Node config = YAML::LoadFile("test.yaml"));
 
-            ~AUV2StepPIDControlSampler();            
-
-            unsigned int getNumControlSamples () const
-            {
-                return numControlSamples_;
-            }
-
-            void setNumControlSamples (unsigned int numSamples)
-            {
-                numControlSamples_ = numSamples;
-            }
+            ~AUV2StepPIDControlSampler();
 
             unsigned int sampleTo(control::Control *control, const base::State *source, base::State *dest);
 
@@ -42,13 +32,12 @@ namespace ompl
 
         protected:
 
-            unsigned int getBestControl (control::Control *control, const base::State *source, base::State *dest);
+            unsigned int propagation(control::Control *control, const base::State *source, base::State *dest);
             double pid(double reference, double value, double dt, double Kp, double Kd, double Ki, double *pre_error, double *integral, bool isYaw);
 
             void isPIDResetNeeded(const base::State *init, const base::State *dest);
 
             /** \brief The number of controls to sample when finding the best control*/
-            unsigned int                    numControlSamples_;
             control::SpaceInformationPtr    sinf;
             auvplanning::AUVDynamicsPtr     dynamics_;
             control::ODESolverPtr           ode_;
@@ -68,7 +57,6 @@ namespace ompl
             double                          controlZEstable;
             double                          l_motores;
             double                          max_fuerza_motores;
-            double                          dist_xy_inicial;
             double                          dist_z_inicial;
 
             double                          porcentaje_dist_rango_objetivo;
@@ -78,13 +66,12 @@ namespace ompl
             double                          rango_profundidad_min_objetivo;
             double                          rango_profundidad_max_objetivo;
 
-            double                          rango_dist_objetivo = 0;
-            double                          rango_profundidad_objetivo = 0;
+            const double                    rango_dist_objetivo = 0.5;
+            const double                    rango_profundidad_objetivo = 0.5;
+            const double                    rango_yaw_objetivo = 0.005;
 
-            double                          dist_x_inicial = 0;
-            double                          dist_y_inicial = 0;
             double                          dist_inicial = 0;
-            double                          heading = 0;
+            //double                          heading = 0;
 
             double                          pre_errorz = 0;
             double                          pre_errorsurge = 0;
@@ -93,7 +80,7 @@ namespace ompl
             double                          integralsurge = 0;
             double                          integralyaw = 0;
 
-            base::State*                    inicial;
+            //base::State*                    inicial;
             base::State*                    reference;
 
         };

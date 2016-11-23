@@ -45,9 +45,9 @@ ompl::auvplanning::DynamicRRT::DynamicRRT(const control::SpaceInformationPtr &si
     siC_ = si.get();
     lastGoalMotion_ = NULL;
 
-    goalBias_ = 0.25;
+    goalBias_ = 0.1;
 
-    Planner::declareParam<double>("goal_bias", this, &DynamicRRT::setGoalBias, &DynamicRRT::getGoalBias, "0.:.25:1.");
+    Planner::declareParam<double>("goal_bias", this, &DynamicRRT::setGoalBias, &DynamicRRT::getGoalBias, "0.:.1:1.");
 }
 
 ompl::auvplanning::DynamicRRT::~DynamicRRT()
@@ -125,14 +125,17 @@ ompl::base::PlannerStatus ompl::auvplanning::DynamicRRT::solve(const base::Plann
     Motion      			*rmotion = new Motion(siC_);
     base::State  			*rstate = rmotion->currentState;
     base::State       		*rfinalState = rmotion->referenceState;
-    control::Control			*rctrl = siC_->allocControl();
+    control::Control		*rctrl = siC_->allocControl();
     int contador = 1;
 
-    while (ptc == false)
+    const unsigned int  minDuration = siC_->getMinControlDuration();
+    const unsigned int  maxDuration = siC_->getMaxControlDuration();
+
+    while (ptc == false && solution == NULL)
     {
         /* sample random state (with goal biasing) */
-        //if (goal_s && rng_.uniform01() < goalBias_ && goal_s->canSample())
-        if(contador%1 == 0)
+        if (goal_s && rng_.uniform01() < goalBias_ && goal_s->canSample())
+        //if(contador%1 == 0)
             goal_s->sampleGoal(rstate);
         else
             sampler_->sampleUniform(rstate);
@@ -150,20 +153,20 @@ ompl::base::PlannerStatus ompl::auvplanning::DynamicRRT::solve(const base::Plann
         /*int max_num_intermediate_states = 10;
         int num_intermediate_states = 0;*/
         unsigned int tiempo = 0;
+        unsigned int t = minDuration;
 
-        while(si_->distance(intermediate_state, rmotion->currentState) > 0.2*tdist /*&& num_intermediate_states < max_num_intermediate_states*/){
+        while((tiempo < maxDuration || t > minDuration) && ptc == false && solution == NULL){
+            /*si_->distance(intermediate_state, rmotion->currentState) > 0.2*tdist && num_intermediate_states < max_num_intermediate_states*/ 
         	//printf("hola\n");
         	si_->copyState(intermediate_final_state, rstate);
         	/*printf("Objetivo. intermediate_final_state -> %f, %f, %f, %f\n", intermediate_final_state->as<base::RealVectorStateSpace::StateType>()->values[0],
 				intermediate_final_state->as<base::RealVectorStateSpace::StateType>()->values[1],intermediate_final_state->as<base::RealVectorStateSpace::StateType>()->values[2],
 				intermediate_final_state->as<base::RealVectorStateSpace::StateType>()->values[3]);*/
-        	unsigned int t = controlSampler_->sampleTo(rctrl, intermediate_state, intermediate_final_state);
+        	t = controlSampler_->sampleTo(rctrl, intermediate_state, intermediate_final_state);
         	//printf("adios. tiempo = %d t = %d minimo = %d maximo = %d\n", tiempo, t, siC_->getMinControlDuration(), siC_->getMaxControlDuration());
         	si_->copyState(intermediate_state, intermediate_final_state);
 
         	tiempo = tiempo + t;
-
-        	if (tiempo > siC_->getMaxControlDuration() || t < siC_->getMinControlDuration()) break;
         	//printf("adios 2\n");
         	/* create a motion */
             Motion *motion = new Motion(siC_);
@@ -178,10 +181,10 @@ ompl::base::PlannerStatus ompl::auvplanning::DynamicRRT::solve(const base::Plann
             if(goal->isSatisfied(motion->currentState, &dist)){ 
                 approxdif = dist;
                 solution = motion;
-            	break;
             }
             if (dist < approxdif)
             {
+                //printf("Distancia más cercana: %f\n", dist);
                 approxdif = dist;
                 approxsol = motion;
             }

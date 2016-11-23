@@ -28,7 +28,7 @@ namespace ompl
 
         protected:
 
-            unsigned int propagation(const base::State *source, const base::State *dest, double steps, bool checkValidity);
+            unsigned int propagation(const base::State *source, base::State *dest, unsigned int steps, bool checkValidity);
             double pid(double reference, double value, double dt, double Kp, double Kd, double Ki, double *pre_error, double *integral, bool isYaw);
 
             double                          Kpz, Kdz, Kiz;
@@ -54,19 +54,7 @@ namespace ompl
             double                          rango_profundidad_max_objetivo;
 
 			double 							rango_dist_objetivo = 0;
-			double 							rango_profundidad_objetivo = 0;
-
-            double 							dist_x_inicial = 0;
-			double 							dist_y_inicial = 0;
-			double 							dist_inicial = 0;
-			double 							heading = 0;
-
-		    double 							pre_errorz = 0;
-		    double 							pre_errorsurge = 0;
-		    double 							pre_erroryaw = 0;
-		    double 							integralz = 0;
-		    double 							integralsurge = 0;
-		    double 							integralyaw = 0;
+			double 							rango_profundidad_objetivo = 0;            
         };
 
     }

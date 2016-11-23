@@ -43,7 +43,10 @@
 
 #include "yaml-cpp/yaml.h"
 
-
+#include "robots/control/Controller.h"
+#include "robots/control/AUVPID.h"
+#include "robots/control/AUV2StepPID.h"
+#include "planners/PathController.h"
 
 
 

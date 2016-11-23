@@ -8,42 +8,6 @@
 #include <numeric>
 #include <cmath>
 
-namespace
-{
-    unsigned int getNumberOfDiscreteControls(const ompl::control::ControlSpace *cs)
-    {
-        if (cs->isCompound())
-        {
-            const ompl::control::CompoundControlSpace *ccs
-                = cs->as<ompl::control::CompoundControlSpace>();
-            unsigned int num = 0;
-            for (unsigned int i = 0; i < ccs->getSubspaceCount(); ++i)
-                num += getNumberOfDiscreteControls(ccs->getSubspace(i).get());
-
-            return num;
-        }
-        else
-            if (dynamic_cast<const ompl::control::DiscreteControlSpace*>(cs))
-                return 1;
-        return 0;
-    }
-
-    void printDiscreteControls(std::ostream &out, const ompl::control::ControlSpace *cs,
-        const ompl::control::Control *c)
-    {
-        if (cs->isCompound())
-        {
-            const ompl::control::CompoundControlSpace *ccs
-                = cs->as<ompl::control::CompoundControlSpace>();
-            for (unsigned int i = 0; i < ccs->getSubspaceCount(); ++i)
-                printDiscreteControls(out, ccs->getSubspace(i).get(),
-                    c->as<ompl::control::CompoundControl>()->components[i]);
-        }
-        else if (dynamic_cast<const ompl::control::DiscreteControlSpace*>(cs))
-            out << c->as<ompl::control::DiscreteControlSpace::ControlType>()->value << ' ';
-    }
-}
-
 ompl::auvplanning::PathController::PathController(const base::SpaceInformationPtr &si) : base::Path(si)
 {
     if (!dynamic_cast<const control::SpaceInformation*>(si_.get()))
@@ -150,46 +114,57 @@ void ompl::auvplanning::PathController::interpolate()
         return;
     }
 
-    /*
-    const SpaceInformation *si = static_cast<const SpaceInformation*>(si_.get());
-    std::vector<base::State*> newStates;
-    std::vector<Control*> newControls;
+    printf("interpolate: currentStates_: %ld \n",currentStates_.size());
+    printf("interpolate: referenceStates_: %ld \n",referenceStates_.size());
+    printf("interpolate: controlDurations_: %ld \n",controlDurations_.size());
+
+    const control::SpaceInformation *si = static_cast<const control::SpaceInformation*>(si_.get());
+    ompl::controller::ControllerPtr controller(new ompl::controller::AUV2StepPID(si));
+    std::vector<base::State*> newCurrentStates;
+    std::vector<base::State*> newReferenceStates;
     std::vector<double> newControlDurations;
 
     double res = si->getPropagationStepSize();
-    for (unsigned int  i = 0 ; i < controls_.size() ; ++i)
+    for (unsigned int  i = 0 ; i < referenceStates_.size() ; ++i)
     {
         int steps = (int)floor(0.5 + controlDurations_[i] / res);
         assert(steps >= 0);
         if (steps <= 1)
         {
-            newStates.push_back(states_[i]);
-            newControls.push_back(controls_[i]);
+            newCurrentStates.push_back(currentStates_[i]);
+            newReferenceStates.push_back(referenceStates_[i]);
             newControlDurations.push_back(controlDurations_[i]);
             continue;
         }
         std::vector<base::State*> istates;
-        si->propagate(states_[i], controls_[i], steps, istates, true);
+        controller->propagateController(currentStates_[i], referenceStates_[i], istates, steps, true);
         // last state is already in the non-interpolated path
         if (!istates.empty())
         {
             si_->freeState(istates.back());
             istates.pop_back();
         }
-        newStates.push_back(states_[i]);
-        newStates.insert(newStates.end(), istates.begin(), istates.end());
-        newControls.push_back(controls_[i]);
+        newCurrentStates.push_back(currentStates_[i]);
+        newCurrentStates.insert(newCurrentStates.end(), istates.begin(), istates.end());
+        newReferenceStates.push_back(referenceStates_[i]);
         newControlDurations.push_back(res);
         for (int j = 1 ; j < steps; ++j)
         {
-            newControls.push_back(si->cloneControl(controls_[i]));
+            newReferenceStates.push_back(si->cloneState(referenceStates_[i]));
             newControlDurations.push_back(res);
         }
     }
-    newStates.push_back(states_[controls_.size()]);
-    states_.swap(newStates);
-    controls_.swap(newControls);
-    controlDurations_.swap(newControlDurations);*/
+    newCurrentStates.push_back(currentStates_[referenceStates_.size()]);
+    currentStates_.swap(newCurrentStates);
+    referenceStates_.swap(newReferenceStates);
+    controlDurations_.swap(newControlDurations);
+
+
+
+
+    printf("interpolate: newcurrentStates_: %ld \n",currentStates_.size());
+    printf("interpolate: newreferenceStates_: %ld \n",referenceStates_.size());
+    printf("interpolate: newcontrolDurations_: %ld \n",controlDurations_.size());
 }
 
 bool ompl::auvplanning::PathController::check() const
@@ -232,67 +207,6 @@ void ompl::auvplanning::PathController::append(const base::State *state, const b
     currentStates_.push_back(si->cloneState(state));
     referenceStates_.push_back(si->cloneState(reference));
     controlDurations_.push_back(duration);
-}
-
-void ompl::auvplanning::PathController::random()
-{
-    /*freeMemory();
-    states_.resize(2);
-    controlDurations_.resize(1);
-    controls_.resize(1);
-
-    const SpaceInformation *si = static_cast<const SpaceInformation*>(si_.get());
-    states_[0] = si->allocState();
-    states_[1] = si->allocState();
-    controls_[0] = si->allocControl();
-
-    base::StateSamplerPtr ss = si->allocStateSampler();
-    ss->sampleUniform(states_[0]);
-    ControlSamplerPtr cs = si->allocControlSampler();
-    cs->sample(controls_[0], states_[0]);
-    unsigned int steps = cs->sampleStepCount(si->getMinControlDuration(), si->getMaxControlDuration());
-    controlDurations_[0] = steps * si->getPropagationStepSize();
-    si->propagate(states_[0], controls_[0], steps, states_[1]);*/
-}
-
-bool ompl::auvplanning::PathController::randomValid(unsigned int attempts)
-{
-    /*freeMemory();
-    states_.resize(2);
-    controlDurations_.resize(1);
-    controls_.resize(1);
-
-    const SpaceInformation *si = static_cast<const SpaceInformation*>(si_.get());
-    states_[0] = si->allocState();
-    states_[1] = si->allocState();
-    controls_[0] = si->allocControl();
-
-    ControlSamplerPtr cs = si->allocControlSampler();
-    base::UniformValidStateSampler *uvss = new base::UniformValidStateSampler(si);
-    uvss->setNrAttempts(attempts);
-    bool ok = false;
-    for (unsigned int i = 0 ; i < attempts ; ++i)
-        if (uvss->sample(states_[0]))
-        {
-            cs->sample(controls_[0], states_[0]);
-            unsigned int steps = cs->sampleStepCount(si->getMinControlDuration(), si->getMaxControlDuration());
-            controlDurations_[0] = steps * si->getPropagationStepSize();
-            if (si->propagateWhileValid(states_[0], controls_[0], steps, states_[1]) == steps)
-            {
-                ok = true;
-                break;
-            }
-        }
-    delete uvss;
-
-    if (!ok)
-    {
-        freeMemory();
-        states_.clear();
-        controls_.clear();
-        controlDurations_.clear();
-    }
-    return ok;*/ return false;
 }
 
 void ompl::auvplanning::PathController::freeMemory()

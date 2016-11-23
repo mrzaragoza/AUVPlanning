@@ -66,8 +66,12 @@ void ompl::auvplanning::AUVRobot::setup(int type)
 
     ss_.getStateSpace()->as<ob::RealVectorStateSpace>()->setBounds(bounds);
 
-    if (ss_.getStateValidityChecker() != validitySvc_)
+    validitySvc_ = rbg_.allocStateValidityChecker(sinf_,  getGeometricStateExtractor(), false);
+
+    if (ss_.getStateValidityChecker() != validitySvc_){
+        printf("AUVRobot::setup ss_.getStateValidityChecker() es distinto de validitySvc_\n");
         ss_.setStateValidityChecker(validitySvc_);
+    }
 
     ss_.getStateSpace()->setup();
 
@@ -141,11 +145,11 @@ ompl::control::DirectedControlSamplerPtr ompl::auvplanning::AUVRobot::AUVDirecte
 {
     return ompl::control::DirectedControlSamplerPtr(new oauv::AUVDirectedControlSampler(si, k, config));
 }
-/*
-ompl::control::DirectedControlSamplerPtr ompl::auvplanning::AUVRobot::AUV2StepPIDControlSamplerAllocator(const ompl::control::SpaceInformation *si, unsigned int k, YAML::Node config)
+
+ompl::control::DirectedControlSamplerPtr ompl::auvplanning::AUVRobot::AUV2StepPIDControlSamplerAllocator(const ompl::control::SpaceInformation *si, YAML::Node config)
 {
-    return ompl::control::DirectedControlSamplerPtr(new oauv::AUV2StepPIDControlSamplerAllocator(si, k, config));
-}*/
+    return ompl::control::DirectedControlSamplerPtr(new oauv::AUV2StepPIDControlSampler(si, config));
+}
 
 ompl::control::DirectedControlSamplerPtr ompl::auvplanning::AUVRobot::AUVPIDControlSamplerAllocator(const ompl::control::SpaceInformation *si, unsigned int k, YAML::Node config)
 {
@@ -174,9 +178,9 @@ void ompl::auvplanning::AUVRobot::setDirectedControlSampler(int type){
         case AUV_PID_DCS:
             dcsa = boost::bind(AUVPIDControlSamplerAllocator, sinf_.get(), 15, config_);
             break;
-        /*case AUV_2PID_DCS:
-            dcsa = boost::bind(AUV2StepPIDControlSamplerAllocator, sinf_.get(), 15, config_);
-            break;*/
+        case AUV_2PID_DCS:
+            dcsa = boost::bind(AUV2StepPIDControlSamplerAllocator, sinf_.get(), config_);
+            break;
         default:
             dcsa = boost::bind(RandomDirectedControlSamplerAllocator, sinf_.get(), 15);
     }

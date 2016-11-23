@@ -10,7 +10,8 @@
 
 /* Author: Ioan Sucan */
 
-#include "omplapp/geometry/detail/assimpUtil.h"
+//#include "omplapp/geometry/detail/assimpUtil.h"
+#include "src/colisionador/assimpUtil.h"
 #include <ompl/util/Console.h>
 #include <limits>
 
@@ -30,6 +31,7 @@ void ompl::app::scene::inferBounds(base::RealVectorBounds &bounds, const std::ve
         if (maxY < vertices[i].y) maxY = vertices[i].y;
         if (minZ > vertices[i].z) minZ = vertices[i].z;
         if (maxZ < vertices[i].z) maxZ = vertices[i].z;
+        printf("Min %f %f %f  Max %f %f %f\n", minX, minY, minZ, maxX, maxY, maxZ);
     }
 
     multiply -= 1.0;

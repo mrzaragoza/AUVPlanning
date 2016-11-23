@@ -1,24 +1,28 @@
-general/propStepSize: 0.01
-general/minControlDuration: 300
-general/maxControlDuration: 30000
+general/propStepSize: 0.05
+general/minControlDuration: 20
+general/maxControlDuration: 100
 general/checkresolution: 0.1
-general/distanceToGoal: 2
+general/distanceToGoal: 1.5
 
-general/start: [600, 120, 100, 0, 0, 0, 0, 0]
-general/goal:  [550, 330, 115, 0, 0, 0, 0, 0]
-general/env_file: "/home/guillermo/workspace_tfm/resources/entorno_vacio_x+90.dae" #"/home/guillermo/workspace_tfm/resources/entorno_columnas_x+90.dae" 
-general/robot_file: "/home/guillermo/workspace_tfm/resources/freeCAD/cilindro_0_1.dae" #"/home/guillermo/workspace_tfm/resources/cilinder_AUV.dae"
+general/start: [-20, 10, -5, 0, 0, 0, 0, 0]
+#general/start: [0, 10, 0, 0, 0, 0, 0, 0]
+general/goal:  [-20, -20, -15, 0, 0, 0, 0, 0]
+#general/goal:  [0, 0, 0, 0, 0, 0, 0, 0]
+#general/env_file: "/home/guillermo/workspace_auv/resources/entorno_vacio_x+90.dae" #"/home/guillermo/workspace_tfm/resources/entorno_columnas_x+90.dae" 
+general/env_file: "/home/guillermo/workspace_auv/resources/EntornosParaTests/paredgruesa_lateral.dae" #"/home/guillermo/workspace_tfm/resources/entorno_columnas_x+90.dae" 
+#general/robot_file: "/home/guillermo/workspace_auv/resources/freeCAD/cilindro_0_1.dae" #"/home/guillermo/workspace_tfm/resources/cilinder_AUV.dae"
+general/robot_file: "/home/guillermo/workspace_auv/resources/ConKiki/cilindro_submarino.dae" #"/home/guillermo/workspace_tfm/resources/cilinder_AUV.dae"
 
 dynamics/time: 20
 dynamics/th1: 0.6
 dynamics/th2: 1.0
 dynamics/th3: 1.0
 
-plan/time: 180
-plan/solutionFile: "benchmarkDebug.txt"
-plan/solutionQuatFile: "benchmarkWithQuatDebug.txt"
-plan/solutionControlsFile: "benchmarkControls.txt"
-plan/planner: "DynamicRRT"
+plan/time: 150
+plan/solutionFile: "benchmarkDebugRRT5.txt"
+plan/solutionQuatFile: "benchmarkWithQuatDebugRRT5.txt"
+plan/solutionControlsFile: "benchmarkControlsRRT5.txt"
+plan/planner: "RRT"
 plan/ESTrange: 10
 
 benchmark/testname: "REKPTest con PID Sampler"

@@ -1,17 +1,11 @@
-#include "planners/PlanificadorLocal/AUV2StepPIDControlSampler.h"
+#include "robots/control/AUV2StepPID.h"
 #include <ompl/control/ODESolver.h>
 #include "robots/dynamics/AUVdynamics.h"
 
 namespace ob = ompl::base;
 namespace oc = ompl::control;
-namespace oauv = ompl::auvplanning;
 
-ompl::auvplanning::AUV2StepPIDControlSampler::AUV2StepPIDControlSampler(const control::SpaceInformation *si, unsigned int k, YAML::Node config) :
-control::DirectedControlSampler(si), numControlSamples_(k),
-sinf(si),
-dynamics_(new oauv::AUVDynamics()),
-ode_(new ompl::control::ODEBasicSolver<>(sinf, boost::bind(&oauv::AUVDynamics::ode, dynamics_, _1, _2, _3))),
-cSpace_(new control::RealVectorControlSpace(si->getStateSpace(), 3))
+ompl::controller::AUV2StepPID::AUV2StepPID(const control::SpaceInformation *si) : Controller(si)
 {
     YAML::Node robot_config = YAML::LoadFile("../includes/robots/torpedo.yaml");
 
@@ -49,77 +43,60 @@ cSpace_(new control::RealVectorControlSpace(si->getStateSpace(), 3))
     rango_profundidad_min_objetivo = robot_config["control/rango_profundidad_min_objetivo"].as<double>();
     rango_profundidad_max_objetivo = robot_config["control/rango_profundidad_max_objetivo"].as<double>();
 
-    stepSize = si->getPropagationStepSize();
-    stPropagator = oc::ODESolver::getStatePropagator(ode_, boost::bind(&oauv::AUVDynamics::postPropagate, dynamics_, _1, _2, _3, _4));
-
 }
 
-ompl::auvplanning::AUV2StepPIDControlSampler::~AUV2StepPIDControlSampler()
+unsigned int ompl::controller::AUV2StepPID::propagation(const base::State *source, base::State *dest, unsigned int steps, bool checkValidity)
 {
-}
+    //const unsigned int maxDuration = sinf->getMaxControlDuration();
 
-unsigned int ompl::auvplanning::AUV2StepPIDControlSampler::sampleTo(control::Control *control, const base::State *source, base::State *dest)
-{
-    return getBestControl(control, source, dest);
-}
+    control::Control    *newControl = sinf->allocControl();
+    base::State         *stateTemp = sinf->allocState();
+    base::State         *stateRes = sinf->allocState();
+    sinf->copyState(stateTemp,source);  
 
-unsigned int ompl::auvplanning::AUV2StepPIDControlSampler::sampleTo(control::Control *control, const control::Control *previous, const base::State *source, base::State *dest)
-{
-    return getBestControl(control, source, dest);
-}
+/*
+    sinf->printState(source);
+    sinf->printState(dest);*/
 
-unsigned int ompl::auvplanning::AUV2StepPIDControlSampler::getBestControl (control::Control *control, const base::State *source, base::State *dest)
-{
-    isPIDResetNeeded(source,dest);
-    const unsigned int minDuration = si_->getMinControlDuration();
+    double              pre_errorz = 0, pre_errorsurge = 0, pre_erroryaw = 0, integralz = 0, integralsurge = 0, integralyaw = 0;
 
-    ompl::control::RealVectorControlSpace::ControlType *newControl = static_cast<ompl::control::RealVectorControlSpace::ControlType*>(control);
+    double              fSurge = 0, fZ = 0, mZ = 0, tau0 = 0, tau1 = 0, tau2 = 0;
+    unsigned int        tiempo = 0;
 
-    base::State         *stateTemp = si_->allocState();
-    base::State         *stateRes = si_->allocState();
-    si_->copyState(stateTemp,source);   
-
-    double z_ref = dest->as<base::RealVectorStateSpace::StateType>()->values[2];
-    double z = source->as<base::RealVectorStateSpace::StateType>()->values[2];
-    double yaw = source->as<base::RealVectorStateSpace::StateType>()->values[3];
-
-    //variables de control
-    double fSurge = 0, fZ = 0, mZ = 0;
-    double dt = si_->getPropagationStepSize();
-    double tau0 = 0, tau1 = 0, tau2 = 0;
-    unsigned int tiempo = 0.0;
-
-    double dist_x = reference->as<base::RealVectorStateSpace::StateType>()->values[0] - 
+    double              dist_x = dest->as<base::RealVectorStateSpace::StateType>()->values[0] - 
                                             stateTemp->as<base::RealVectorStateSpace::StateType>()->values[0];
-    double dist_y = reference->as<base::RealVectorStateSpace::StateType>()->values[1] - 
+    double              dist_y = dest->as<base::RealVectorStateSpace::StateType>()->values[1] - 
                                             stateTemp->as<base::RealVectorStateSpace::StateType>()->values[1];
-    double dist_z = reference->as<base::RealVectorStateSpace::StateType>()->values[2] - 
-                                            stateTemp->as<base::RealVectorStateSpace::StateType>()->values[2];
+        
+    double              z_ref = dest->as<base::RealVectorStateSpace::StateType>()->values[2];
+    double              z, yaw, heading; //radianes
+    double              dist_inicial = sqrt(pow(dist_x,2) + pow(dist_y,2));
+    double              dist_actual = dist_inicial;
 
-    double dist_actual = sqrt(pow(dist_x,2) + pow(dist_y,2));
-    //printf("getBestControl. Pre bucle\n");
-    //std::cout << std::boolalpha << (tiempo <= minDuration && (abs(dist_actual) > rango_dist_objetivo || abs(dist_z) > rango_profundidad_objetivo)) << std::endl;
-    while(tiempo <= minDuration && (abs(dist_actual) > rango_dist_objetivo || abs(dist_z) > rango_profundidad_objetivo)){
+    double              rango_dist_objetivo = 1.5, rango_profundidad_objetivo = 0.5, rango_yaw_objetivo = 0.005;
 
-        //printf("getBestControl. en bucle");
+    do{
+        z = stateTemp->as<base::RealVectorStateSpace::StateType>()->values[2];
+        yaw = stateTemp->as<base::RealVectorStateSpace::StateType>()->values[3];
+        heading = atan2(dist_y,dist_x);
 
-        fZ = pid(z_ref, z, dt, Kpz, Kdz, Kiz, &pre_errorz, &integralz, false);
-        mZ = pid(heading, yaw, dt, Kpyaw, Kdyaw, Kiyaw, &pre_erroryaw, &integralyaw, true);
-        fSurge = pid(0, dist_inicial, dt, Kpsurge, Kdsurge, Kisurge, &pre_errorsurge, &integralsurge, false);
+        fZ = pid(z_ref, z, stepSize, Kpz, Kdz, Kiz, &pre_errorz, &integralz, false);
+        mZ = pid(heading,yaw, stepSize, Kpyaw, Kdyaw, Kiyaw, &pre_erroryaw, &integralyaw, true);
 
         //Traducción de las fuerzas y mometos a las acciones de control
         tau0 = (fZ/max_fuerza_motores) + controlZEstable;
-        tau1 = fSurge/2 + mZ/(2*l_motores);
-        tau2 = fSurge/2 - mZ/(2*l_motores);
+        tau1 = mZ/(2*l_motores*max_fuerza_motores);
+        tau2 = -tau1;
 
-        tau1 = tau1/max_fuerza_motores;
-        tau2 = tau2/max_fuerza_motores;
+        /*tau1 = fSurge/2 + mZ/(2*l_motores);
+        tau2 = fSurge/2 - mZ/(2*l_motores);*/
+        /*tau1 = tau1/max_fuerza_motores;
+        tau2 = tau2/max_fuerza_motores;*/
 
         if(tau0 > 1)  tau0 = 1;
         else if(tau0 < -1) tau0 = -1;
 
         if ( tau1 > 1 || tau2 > 1 ){
-
             if( tau1 > tau2 ){
                 tau2 = tau2/tau1;
                 tau1 = 1;
@@ -138,7 +115,74 @@ unsigned int ompl::auvplanning::AUV2StepPIDControlSampler::getBestControl (contr
                 tau1 = -tau1/tau2;
                 tau2 = -1;
             }
+        }
+        
+        //printf("Control: %f %f %f\n",tau0, tau1, tau2);
 
+        newControl->as<control::RealVectorControlSpace::ControlType>()->values[0] = tau0;
+        newControl->as<control::RealVectorControlSpace::ControlType>()->values[1] = tau1;
+        newControl->as<control::RealVectorControlSpace::ControlType>()->values[2] = tau2;   
+    
+        stPropagator->propagate(stateTemp,newControl,stepSize,stateRes);
+
+        sinf->copyState(stateTemp,stateRes);
+
+        /*printf("%f %f %f %f %f %f %f %f err_z: %f  err_yaw: %f", stateRes->as<base::RealVectorStateSpace::StateType>()->values[0],
+        stateRes->as<base::RealVectorStateSpace::StateType>()->values[1],
+        stateRes->as<base::RealVectorStateSpace::StateType>()->values[2],
+        stateRes->as<base::RealVectorStateSpace::StateType>()->values[3],
+        stateRes->as<base::RealVectorStateSpace::StateType>()->values[4],
+        stateRes->as<base::RealVectorStateSpace::StateType>()->values[5],
+        stateRes->as<base::RealVectorStateSpace::StateType>()->values[6],
+        stateRes->as<base::RealVectorStateSpace::StateType>()->values[7],
+        fabs(pre_errorz), fabs(pre_erroryaw));
+
+        printf("\r");*/
+
+        //CHECK VALIDITY
+        tiempo++;
+    }while(/*tiempo <= maxDuration &&*/ tiempo <= steps && !( fabs(pre_erroryaw) < rango_yaw_objetivo));
+
+    /*printf("\n");
+    printf("[AUVPID] Tiempo simulado: %f\n", tiempo*stepSize);*/
+
+    do
+    {
+        z = stateTemp->as<base::RealVectorStateSpace::StateType>()->values[2];
+        dist_x = dest->as<base::RealVectorStateSpace::StateType>()->values[0] - stateTemp->as<base::RealVectorStateSpace::StateType>()->values[0];
+        dist_y = dest->as<base::RealVectorStateSpace::StateType>()->values[1] - stateTemp->as<base::RealVectorStateSpace::StateType>()->values[1];
+        dist_actual = sqrt(pow(dist_x,2) + pow(dist_y,2));
+
+        fZ = pid(z_ref, z, stepSize, Kpz, Kdz, Kiz, &pre_errorz, &integralz, false);
+        fSurge = pid(dist_inicial, dist_inicial-dist_actual, stepSize, Kpsurge, Kdsurge, Kisurge, &pre_errorsurge, &integralsurge, false);
+
+        //Traducción de las fuerzas y mometos a las acciones de control
+        tau0 = (fZ/max_fuerza_motores) + controlZEstable;
+        tau1 = fSurge/(2*max_fuerza_motores);
+        tau2 = fSurge/(2*max_fuerza_motores);
+
+        if(tau0 > 1)  tau0 = 1;
+        else if(tau0 < -1) tau0 = -1;
+
+        if ( tau1 > 1 || tau2 > 1 ){
+            if( tau1 > tau2 ){
+                tau2 = tau2/tau1;
+                tau1 = 1;
+            }else{
+                tau1 = tau1/tau2;
+                tau2 = 1;
+            }   
+        }
+
+        if ( tau1 < -1 || tau2 < -1 ){
+
+            if( tau1 < tau2 ){
+                tau2 = -tau2/tau1;
+                tau1 = -1;
+            }else{
+                tau1 = -tau1/tau2;
+                tau2 = -1;
+            }
         }
 
         newControl->as<control::RealVectorControlSpace::ControlType>()->values[0] = tau0;
@@ -147,54 +191,48 @@ unsigned int ompl::auvplanning::AUV2StepPIDControlSampler::getBestControl (contr
     
         stPropagator->propagate(stateTemp,newControl,stepSize,stateRes);
 
-        /*printf("getBestControl. Estado -> %f, %f, %f, %f\n", stateRes->as<base::RealVectorStateSpace::StateType>()->values[0],
-            stateRes->as<base::RealVectorStateSpace::StateType>()->values[1],stateRes->as<base::RealVectorStateSpace::StateType>()->values[2],
-            stateRes->as<base::RealVectorStateSpace::StateType>()->values[3]);      */
-        //printf(" %f, %f, %f\n", tau0,tau1,tau2);
+        sinf->copyState(stateTemp,stateRes);
 
-        if(!si_->isValid(stateRes)){
-            //printf("getBestControl. NO VALIDO!!\n");
-            break;
-        }
-        si_->copyState(stateTemp,stateRes);
-        tiempo + 1;
+/*
+        printf("%f %f %f %f %f %f %f %f dist actual : %f", stateRes->as<base::RealVectorStateSpace::StateType>()->values[0],
+        stateRes->as<base::RealVectorStateSpace::StateType>()->values[1],
+        stateRes->as<base::RealVectorStateSpace::StateType>()->values[2],
+        stateRes->as<base::RealVectorStateSpace::StateType>()->values[3],
+        stateRes->as<base::RealVectorStateSpace::StateType>()->values[4],
+        stateRes->as<base::RealVectorStateSpace::StateType>()->values[5],
+        stateRes->as<base::RealVectorStateSpace::StateType>()->values[6],
+        stateRes->as<base::RealVectorStateSpace::StateType>()->values[7],
+        dist_actual);
 
-        dist_x = reference->as<base::RealVectorStateSpace::StateType>()->values[0] - 
-                                            stateTemp->as<base::RealVectorStateSpace::StateType>()->values[0];
-        dist_y = reference->as<base::RealVectorStateSpace::StateType>()->values[1] - 
-                                            stateTemp->as<base::RealVectorStateSpace::StateType>()->values[1];
-        dist_z = reference->as<base::RealVectorStateSpace::StateType>()->values[2] - 
-                                            stateTemp->as<base::RealVectorStateSpace::StateType>()->values[2];
+        printf("\r");*/
 
-        dist_actual = sqrt(pow(dist_x,2) + pow(dist_y,2));
+        //CHECK VALIDITY
         tiempo++;
-    }
-    //printf("\n");
 
-    printf("%f %f %f %f %f %f %f %f || ", source->as<base::RealVectorStateSpace::StateType>()->values[0],
-            source->as<base::RealVectorStateSpace::StateType>()->values[1],source->as<base::RealVectorStateSpace::StateType>()->values[2],
-            source->as<base::RealVectorStateSpace::StateType>()->values[3],source->as<base::RealVectorStateSpace::StateType>()->values[4],
-            source->as<base::RealVectorStateSpace::StateType>()->values[5],source->as<base::RealVectorStateSpace::StateType>()->values[6],
-            source->as<base::RealVectorStateSpace::StateType>()->values[7]);
-
-    printf("%f %f %f %f %f %f %f %f || ", dest->as<base::RealVectorStateSpace::StateType>()->values[0],
-            dest->as<base::RealVectorStateSpace::StateType>()->values[1],dest->as<base::RealVectorStateSpace::StateType>()->values[2],
-            dest->as<base::RealVectorStateSpace::StateType>()->values[3],dest->as<base::RealVectorStateSpace::StateType>()->values[4],
-            dest->as<base::RealVectorStateSpace::StateType>()->values[5],dest->as<base::RealVectorStateSpace::StateType>()->values[6],
-            dest->as<base::RealVectorStateSpace::StateType>()->values[7]);
-    si_->copyState(dest, stateTemp);
-    si_->freeState(stateTemp);
-    si_->freeState(stateRes);
-    printf("%f %f %f %f %f %f %f %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[0],
-        dest->as<base::RealVectorStateSpace::StateType>()->values[1],dest->as<base::RealVectorStateSpace::StateType>()->values[2],
-        dest->as<base::RealVectorStateSpace::StateType>()->values[3],dest->as<base::RealVectorStateSpace::StateType>()->values[4],
-        dest->as<base::RealVectorStateSpace::StateType>()->values[5],dest->as<base::RealVectorStateSpace::StateType>()->values[6],
-        dest->as<base::RealVectorStateSpace::StateType>()->values[7]);
+        /* code */
+    } while (/*tiempo <= maxDuration &&*/ tiempo <= steps && !(fabs(pre_errorsurge) < rango_dist_objetivo && fabs(pre_errorz) < rango_profundidad_max_objetivo));
+    //
+   /* printf("\n");*/
+    
+    sinf->copyState(dest, stateTemp);
+    sinf->freeState(stateTemp);
+    sinf->freeState(stateRes);
+    sinf->freeControl(newControl);
+/*
+    printf("[AUVPID] Tiempo simulado: %f\n", tiempo*stepSize);
+    printf("[AUVPID] result x: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[0]);
+    printf("[AUVPID] result y: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[1]);
+    printf("[AUVPID] result z: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[2]);
+    printf("[AUVPID] result yaw: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[3]);
+    printf("[AUVPID] result vx: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[4]);
+    printf("[AUVPID] result vy: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[5]);
+    printf("[AUVPID] result vz: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[6]);
+    printf("[AUVPID] result vyaw: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[7]);*/
     return tiempo;
 }
 
 
-double ompl::auvplanning::AUV2StepPIDControlSampler::pid(double reference, double value, double dt, double Kp, double Kd, double Ki, double *pre_error, double *integral, bool isYaw){
+double ompl::controller::AUV2StepPID::pid(double reference, double value, double dt, double Kp, double Kd, double Ki, double *pre_error, double *integral, bool isYaw){
 
     double error = reference - value;
 
@@ -212,46 +250,11 @@ double ompl::auvplanning::AUV2StepPIDControlSampler::pid(double reference, doubl
 
     double output = p + i + d;
 
-    if(output > 1) output = 1;
-    else if(output < -1) output = -1;
+    if(output > 5) output = 5;
+    else if(output < -5) output = -5;
+
+    *pre_error = error;
 
     return output;
 
-}
-
-void ompl::auvplanning::AUV2StepPIDControlSampler::isPIDResetNeeded(const base::State *init, const base::State *dest){
-
-    if(si_->equalStates(reference,dest) == false){
-        si_->copyState(inicial, init);
-        si_->copyState(reference, dest);
-
-        //Distancias con estado inicial
-        dist_x_inicial       = reference->as<base::RealVectorStateSpace::StateType>()->values[0] - 
-                                            inicial->as<base::RealVectorStateSpace::StateType>()->values[0];
-        dist_y_inicial       = reference->as<base::RealVectorStateSpace::StateType>()->values[1] - 
-                                            inicial->as<base::RealVectorStateSpace::StateType>()->values[1];
-
-        dist_inicial         = sqrt(pow(dist_x_inicial,2) + pow(dist_y_inicial,2));
-        
-        //Calculo del ángulo que hay entre el estado inicial y el final
-        heading = atan2(dist_y_inicial,dist_x_inicial); //radianes
-
-        //Cálculo del rango de aceptación en el que se considera que se ha llegado al objetivo
-        rango_dist_objetivo = dist_inicial * porcentaje_dist_rango_objetivo;
-        rango_profundidad_objetivo = dist_z_inicial * porcentaje_dist_profundidad_rango_objetivo;
-
-        if(rango_dist_objetivo < rango_min_objetivo) rango_dist_objetivo = rango_min_objetivo;
-        else if(rango_dist_objetivo > rango_max_objetivo) rango_dist_objetivo = rango_max_objetivo;
-
-        if(rango_profundidad_objetivo < rango_profundidad_min_objetivo) rango_profundidad_objetivo = rango_profundidad_min_objetivo;
-        else if(rango_profundidad_objetivo > rango_profundidad_max_objetivo) rango_profundidad_objetivo = rango_profundidad_max_objetivo;
-
-        pre_errorz = 0;
-        pre_errorsurge = 0;
-        pre_erroryaw = 0;
-        integralz = 0;
-        integralsurge = 0;
-        integralyaw = 0;
-        //printf("Reset done\n");
-    }
 }

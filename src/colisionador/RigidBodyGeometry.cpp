@@ -81,12 +81,15 @@ bool ompl::auvplanning::RigidBodyGeometry::setEnvironmentMesh(const std::string 
     else
     {
         OMPL_ERROR("Unable to load environment scene: %s", env.c_str());
+        importerEnv_[p]->GetErrorString();
         importerEnv_.resize(p);
     }
 
     if (p < importerEnv_.size())
     {
-        computeGeometrySpecification();
+        printf("RigidBodyGeometry::computeGeometrySpecification para ejecutar\n");
+        computeGeometrySpecification();        
+        printf("RigidBodyGeometry::computeGeometrySpecification ejecutado. Numero de obstáculos: %ld\n", geom_.obstacles.size());
         return true;
     }
     else
@@ -147,8 +150,8 @@ const ompl::base::StateValidityCheckerPtr& ompl::auvplanning::RigidBodyGeometry:
         return validitySvc_;
 
     GeometrySpecification geom = getGeometrySpecification();
-
     validitySvc_.reset (new FCLStateValidityChecker(si, geom, se, selfCollision));
+    printf("RigidBodyGeometry::allocStateValidityChecker ejecutado\n");
            
     return validitySvc_;
 }

@@ -17,6 +17,7 @@ namespace ompl
 {
     namespace controller
     {
+        OMPL_CLASS_FORWARD(Controller);
 
         class Controller
         {
@@ -25,13 +26,14 @@ namespace ompl
 
             ~Controller(){}           
 
-            unsigned int propagateController(const base::State *source, base::State *dest, double steps);
-            unsigned int propagateWhileValidController(const base::State *source, base::State *dest, double steps);
+            virtual unsigned int propagateController(const base::State *source, base::State *dest, unsigned int steps);
+            virtual void propagateController(const base::State *source, const base::State *dest, std::vector<base::State*> &result, unsigned int steps, bool alloc);
+            virtual unsigned int propagateWhileValidController(const base::State *source, base::State *dest, unsigned int steps);
 
         protected:
 
-            unsigned int propagation(const base::State *source, const base::State *dest, double steps, bool checkValidity) = 0;
-            double pid(double reference, double value, double dt, double Kp, double Kd, double Ki, double *pre_error, double *integral, bool isYaw) = 0;
+            virtual unsigned int propagation(const base::State *source, base::State *dest, unsigned int steps, bool checkValidity) = 0;
+            virtual double pid(double reference, double value, double dt, double Kp, double Kd, double Ki, double *pre_error, double *integral, bool isYaw) = 0;
 
             control::SpaceInformationPtr    sinf;
             auvplanning::AUVDynamicsPtr     dynamics_;

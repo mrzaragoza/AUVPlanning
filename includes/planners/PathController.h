@@ -4,7 +4,8 @@
 #include "ompl/control/SpaceInformation.h"
 #include "ompl/base/Path.h"
 #include "ompl/geometric/PathGeometric.h"
-#include "ompl/control/DirectedControlSampler.h"
+#include "robots/control/Controller.h"
+#include "robots/control/AUV2StepPID.h"
 #include <vector>
 
 namespace ompl
@@ -50,10 +51,6 @@ namespace ompl
             void append(const base::State *state, const base::State *reference, double duration);
 
             void interpolate();
-
-            void random();
-
-            bool randomValid(unsigned int attempts);
 
             std::vector<base::State*>& getCurrentStates()
             {

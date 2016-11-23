@@ -99,6 +99,7 @@ unsigned int ompl::auvplanning::AUVPIDControlSampler::getBestControl (control::C
 	double dist_z = reference->as<base::RealVectorStateSpace::StateType>()->values[2] - 
 	                                        stateTemp->as<base::RealVectorStateSpace::StateType>()->values[2];
 
+	double dist_inicial = sqrt(pow(dist_x,2) + pow(dist_y,2));
 	double dist_actual = sqrt(pow(dist_x,2) + pow(dist_y,2));
 
 	/*printf("Source: %f %f %f %f %f %f %f %f\n", source->as<base::RealVectorStateSpace::StateType>()->values[0],
@@ -115,21 +116,55 @@ unsigned int ompl::auvplanning::AUVPIDControlSampler::getBestControl (control::C
 
 	//printf("getBestControl. Pre bucle\n");
 	//std::cout << std::boolalpha << (tiempo <= minDuration && (abs(dist_actual) > rango_dist_objetivo || abs(dist_z) > rango_profundidad_objetivo)) << std::endl;
-    while(tiempo <= minDuration && (abs(dist_actual) > rango_dist_objetivo || abs(dist_z) > rango_profundidad_objetivo)){
+    while(tiempo <= minDuration && (fabs(dist_actual) > rango_dist_objetivo || fabs(dist_z) > rango_profundidad_objetivo)){
 
     	//printf("getBestControl. en bucle");
 
 	    fZ = pid(z_ref, z, dt, Kpz, Kdz, Kiz, &pre_errorz, &integralz, false);
 	    mZ = pid(heading, yaw, dt, Kpyaw, Kdyaw, Kiyaw, &pre_erroryaw, &integralyaw, true);
-	    fSurge = pid(0, dist_inicial, dt, Kpsurge, Kdsurge, Kisurge, &pre_errorsurge, &integralsurge, false);
+	    fSurge = pid(dist_inicial,dist_inicial-dist_actual, dt, Kpsurge, Kdsurge, Kisurge, &pre_errorsurge, &integralsurge, false);
 
-	    //Traducción de las fuerzas y mometos a las acciones de control
+	    //Traducción de las fuerzas y momentos a las acciones de control
 	    tau0 = (fZ/max_fuerza_motores) + controlZEstable;
-	    tau1 = fSurge/2 - mZ/(2*l_motores);
-	    tau2 = fSurge/2 + mZ/(2*l_motores);
+
+	    /*double A = (fSurge*max_fuerza_motores * (c_rbm1 + c_am1) / mass) + 
+	    	(c_ld1 + c_qd1 * fabs(yn(t_actual,5))) * yn(t_actual,5)*/
+
+	    tau1 = fSurge/2 + mZ/(2*l_motores);
+	    tau2 = fSurge/2 - mZ/(2*l_motores);
 
 	    tau1 = tau1/max_fuerza_motores;
 	    tau2 = tau2/max_fuerza_motores;
+
+	    /*
+		%traducción de las fuerzas y momentos a las acciones de control
+        
+        A = (Fsurge*max_fuerza_motores * (c_rbm(1) + c_am(1)) / mass) + ...
+            (c_ld(1) + c_qd(1) * abs(yn(t_actual,5))) * yn(t_actual,5);
+        
+        B = (Mz*max_fuerza_motores * (c_rbm(4) + c_am(4)) / (mass * l_motores) ) + ...
+            ((c_ld(4) + c_qd(4) * abs(yn(t_actual,8))) * yn(t_actual,8))/l_motores;
+        tau1 = (A+B)/2;
+        tau2 = (A-B)/2;
+	    */
+
+	    /**
+	mass
+c_rbm1
+c_rbm3
+c_rbm4
+c_am1
+c_am3
+c_am4
+c_ld1
+c_ld3
+c_ld4
+c_qd1
+c_qd3
+c_qd4
+
+
+	    */
 
 	    if(tau0 > 1)  tau0 = 1;
 	    else if(tau0 < -1) tau0 = -1;
@@ -173,7 +208,6 @@ unsigned int ompl::auvplanning::AUVPIDControlSampler::getBestControl (control::C
     		break;
     	}*/
     	si_->copyState(stateTemp,stateRes);
-    	tiempo + 1;
 
     	dist_x = reference->as<base::RealVectorStateSpace::StateType>()->values[0] - 
 	                                        stateTemp->as<base::RealVectorStateSpace::StateType>()->values[0];
@@ -183,6 +217,9 @@ unsigned int ompl::auvplanning::AUVPIDControlSampler::getBestControl (control::C
 	                                        stateTemp->as<base::RealVectorStateSpace::StateType>()->values[2];
 
 	    dist_actual = sqrt(pow(dist_x,2) + pow(dist_y,2));
+	    heading = atan2(dist_y,dist_x);
+	    z = stateTemp->as<base::RealVectorStateSpace::StateType>()->values[2];
+		yaw = stateTemp->as<base::RealVectorStateSpace::StateType>()->values[3];
 	    tiempo++;
 	}
 	//printf("\n");

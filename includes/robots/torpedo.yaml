@@ -7,8 +7,8 @@ torpedo/aMassCoefficients: [ 4.3, 4.3, 4.3, 0.8]
 torpedo/dampingCoefficients: [1.0, 14.0, 14.0, 6.0]
 torpedo/quadraticDampingCoefficients: [3.0, 14.0, 14.0, 8.0]
 torpedo/controlZEstable: 0.49699768 #En MATLAB 0.1988
-torpedo/Kz: [0.5, 0.5, 0.0001] #Kp, Kd, Ki
-torpedo/Ksurge: [1, 10, 0.0001] #Kp, Kd, Ki
+torpedo/Kz: [0.5, 0.5, 0.000] #Kp, Kd, Ki
+torpedo/Ksurge: [1, 2, 0.000] #Kp, Kd, Ki
 torpedo/Kyaw: [0.2, 1, 0.0001] #Kp, Kd, Ki
 torpedo/max_fuerza_motores: 20
 

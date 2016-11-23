@@ -22,39 +22,14 @@ namespace ompl
         class AUV2StepPID : public Controller
         {
         public:
-            AUV2StepPID(const control::SpaceInformation *si, unsigned int k = 1, YAML::Node config = YAML::LoadFile("test.yaml"));
+            AUV2StepPID(const control::SpaceInformation *si);
 
-            ~AUV2StepPID();            
-
-            unsigned int getNumControlSamples () const
-            {
-                return numControlSamples_;
-            }
-
-            void setNumControlSamples (unsigned int numSamples)
-            {
-                numControlSamples_ = numSamples;
-            }
-
-            unsigned int sampleTo(control::Control *control, const base::State *source, base::State *dest);
-
-            unsigned int sampleTo(control::Control *control, const control::Control *previous, const base::State *source, base::State *dest);
+            ~AUV2StepPID(){}            
 
         protected:
 
-            unsigned int getBestControl (control::Control *control, const base::State *source, base::State *dest);
+            unsigned int propagation(const base::State *source, base::State *dest, unsigned int steps, bool checkValidity);
             double pid(double reference, double value, double dt, double Kp, double Kd, double Ki, double *pre_error, double *integral, bool isYaw);
-
-            void isPIDResetNeeded(const base::State *init, const base::State *dest);
-
-            /** \brief The number of controls to sample when finding the best control*/
-            unsigned int                    numControlSamples_;
-            control::SpaceInformationPtr    sinf;
-            auvplanning::AUVDynamicsPtr     dynamics_;
-            control::ODESolverPtr           ode_;
-            double                          stepSize;
-            control::StatePropagatorPtr     stPropagator;
-
 
             double                          Kpz, Kdz, Kiz;
             double                          Kpsurge, Kdsurge, Kisurge;
@@ -68,8 +43,6 @@ namespace ompl
             double                          controlZEstable;
             double                          l_motores;
             double                          max_fuerza_motores;
-            double                          dist_xy_inicial;
-            double                          dist_z_inicial;
 
             double                          porcentaje_dist_rango_objetivo;
             double                          rango_min_objetivo;
@@ -77,24 +50,6 @@ namespace ompl
             double                          porcentaje_dist_profundidad_rango_objetivo;
             double                          rango_profundidad_min_objetivo;
             double                          rango_profundidad_max_objetivo;
-
-            double                          rango_dist_objetivo = 0;
-            double                          rango_profundidad_objetivo = 0;
-
-            double                          dist_x_inicial = 0;
-            double                          dist_y_inicial = 0;
-            double                          dist_inicial = 0;
-            double                          heading = 0;
-
-            double                          pre_errorz = 0;
-            double                          pre_errorsurge = 0;
-            double                          pre_erroryaw = 0;
-            double                          integralz = 0;
-            double                          integralsurge = 0;
-            double                          integralyaw = 0;
-
-            base::State*                    inicial;
-            base::State*                    reference;
 
         };
 

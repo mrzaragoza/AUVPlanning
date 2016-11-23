@@ -5,10 +5,7 @@
 namespace ob = ompl::base;
 namespace oc = ompl::control;
 
-ompl::controller::AUVPID::AUVPID(const control::SpaceInformation *si) :
-Controller(si),
-inicial(si->allocState()),
-reference(si->allocState())
+ompl::controller::AUVPID::AUVPID(const control::SpaceInformation *si) : Controller(si)
 {
     YAML::Node robot_config = YAML::LoadFile("../includes/robots/torpedo.yaml");
 
@@ -48,51 +45,63 @@ reference(si->allocState())
 
 }
 
-unsigned int ompl::controller::AUVPID::propagation(const base::State *source, base::State *dest, double steps, bool checkValidity)
+unsigned int ompl::controller::AUVPID::propagation(const base::State *source, base::State *dest, unsigned int steps, bool checkValidity)
 {
-    const unsigned int minDuration = si_->getMinControlDuration();
+    const unsigned int maxDuration = sinf->getMaxControlDuration();
 
-    ompl::control::RealVectorControlSpace::ControlType *newControl = sinf->allocControl();
+    control::Control *newControl = sinf->allocControl();
 
-    base::State         *stateTemp = si_->allocState();
-    base::State         *stateRes = si_->allocState();
-    si_->copyState(stateTemp,source);	
+    base::State         *stateTemp = sinf->allocState();
+    base::State         *stateRes = sinf->allocState();
+    sinf->copyState(stateTemp,source);	
 
-    double z_ref = dest->as<base::RealVectorStateSpace::StateType>()->values[2];
-    double z = source->as<base::RealVectorStateSpace::StateType>()->values[2];
-    double yaw = source->as<base::RealVectorStateSpace::StateType>()->values[3];
+    double 				z = source->as<base::RealVectorStateSpace::StateType>()->values[2];
+    double 				yaw = source->as<base::RealVectorStateSpace::StateType>()->values[3];
 
-    //variables de control
-    double fSurge = 0, fZ = 0, mZ = 0;
-    double dt = si_->getPropagationStepSize();
-    double tau0 = 0, tau1 = 0, tau2 = 0;
-    unsigned int tiempo = 0.0;
+    double				pre_errorz = 0;
+    double				pre_errorsurge = 0;
+    double				pre_erroryaw = 0;
+    double				integralz = 0;
+    double				integralsurge = 0;
+    double				integralyaw = 0;
 
-    double dist_x = reference->as<base::RealVectorStateSpace::StateType>()->values[0] - 
+    double 				fSurge = 0, fZ = 0, mZ = 0;
+    double 				tau0 = 0, tau1 = 0, tau2 = 0;
+    unsigned int 		tiempo = 0;
+
+    double 				dist_x = dest->as<base::RealVectorStateSpace::StateType>()->values[0] - 
 	                                        stateTemp->as<base::RealVectorStateSpace::StateType>()->values[0];
-	double dist_y = reference->as<base::RealVectorStateSpace::StateType>()->values[1] - 
+	double 				dist_y = dest->as<base::RealVectorStateSpace::StateType>()->values[1] - 
 	                                        stateTemp->as<base::RealVectorStateSpace::StateType>()->values[1];
-	double dist_z = reference->as<base::RealVectorStateSpace::StateType>()->values[2] - 
+	double 				dist_z = dest->as<base::RealVectorStateSpace::StateType>()->values[2] - 
 	                                        stateTemp->as<base::RealVectorStateSpace::StateType>()->values[2];
+    
+    double 				z_ref = dest->as<base::RealVectorStateSpace::StateType>()->values[2];
+	double				heading = atan2(dist_y,dist_x); //radianes
+	double 				dist_inicial = sqrt(pow(dist_y,2) + pow(dist_x,2));
+	double 				dist_actual = sqrt(pow(dist_y,2) + pow(dist_x,2));
 
-	double dist_actual = sqrt(pow(dist_x,2) + pow(dist_y,2));
-    while(tiempo <= minDuration && (abs(dist_actual) > rango_dist_objetivo || abs(dist_z) > rango_profundidad_objetivo)){
+	rango_dist_objetivo = 1.5;
+    rango_profundidad_objetivo = 0.5;
+    
+    while(tiempo <= maxDuration && (fabs(dist_actual) > rango_dist_objetivo || fabs(dist_z) > rango_profundidad_objetivo)){
 
-	    fZ = pid(z_ref, z, dt, Kpz, Kdz, Kiz, &pre_errorz, &integralz, false);
-	    mZ = pid(heading, yaw, dt, Kpyaw, Kdyaw, Kiyaw, &pre_erroryaw, &integralyaw, true);
-	    fSurge = pid(0, dist_inicial, dt, Kpsurge, Kdsurge, Kisurge, &pre_errorsurge, &integralsurge, false);
+	    fZ = pid(z_ref, z, stepSize, Kpz, Kdz, Kiz, &pre_errorz, &integralz, false);
+	    mZ = pid(heading,yaw, stepSize, Kpyaw, Kdyaw, Kiyaw, &pre_erroryaw, &integralyaw, true);
+	    fSurge = pid(dist_inicial, dist_inicial-dist_actual, stepSize, Kpsurge, Kdsurge, Kisurge, &pre_errorsurge, &integralsurge, false);
 
 	    //Traducción de las fuerzas y mometos a las acciones de control
 	    tau0 = (fZ/max_fuerza_motores) + controlZEstable;
-	    tau1 = fSurge/2 - mZ/(2*l_motores);
-	    tau2 = fSurge/2 + mZ/(2*l_motores);
-
-	    tau1 = tau1/max_fuerza_motores;
-	    tau2 = tau2/max_fuerza_motores;
+	    tau1 = (fSurge + mZ/l_motores)/(2*max_fuerza_motores);
+	    tau2 = (fSurge - mZ/l_motores)/(2*max_fuerza_motores);
 
 	    if(tau0 > 1)  tau0 = 1;
 	    else if(tau0 < -1) tau0 = -1;
-
+	    if(tau1 > 1)  tau1 = 1;
+	    else if(tau1 < -1) tau1 = -1;
+	    if(tau2 > 1)  tau2 = 1;
+	    else if(tau2 < -1) tau2 = -1;
+/*
 	    if ( tau1 > 1 || tau2 > 1 ){
 
 	        if( tau1 > tau2 ){
@@ -114,7 +123,9 @@ unsigned int ompl::controller::AUVPID::propagation(const base::State *source, ba
 	            tau2 = -1;
 	        }
 
-	    }
+	    }*/
+	    
+	    //printf("Control: %f %f %f\n",tau0, tau1, tau2);
 
 	    newControl->as<control::RealVectorControlSpace::ControlType>()->values[0] = tau0;
 	    newControl->as<control::RealVectorControlSpace::ControlType>()->values[1] = tau1;
@@ -122,23 +133,48 @@ unsigned int ompl::controller::AUVPID::propagation(const base::State *source, ba
 	
     	stPropagator->propagate(stateTemp,newControl,stepSize,stateRes);
 
-    	si_->copyState(stateTemp,stateRes);
-    	tiempo + 1;
+    	sinf->copyState(stateTemp,stateRes);
 
-    	dist_x = reference->as<base::RealVectorStateSpace::StateType>()->values[0] - 
+    	printf("%f %f %f %f %f %f %f %f", stateRes->as<base::RealVectorStateSpace::StateType>()->values[0],
+    	stateRes->as<base::RealVectorStateSpace::StateType>()->values[1],
+    	stateRes->as<base::RealVectorStateSpace::StateType>()->values[2],
+    	stateRes->as<base::RealVectorStateSpace::StateType>()->values[3],
+    	stateRes->as<base::RealVectorStateSpace::StateType>()->values[4],
+    	stateRes->as<base::RealVectorStateSpace::StateType>()->values[5],
+    	stateRes->as<base::RealVectorStateSpace::StateType>()->values[6],
+    	stateRes->as<base::RealVectorStateSpace::StateType>()->values[7]);
+
+    	printf("\r");
+
+    	dist_x = dest->as<base::RealVectorStateSpace::StateType>()->values[0] - 
 	                                        stateTemp->as<base::RealVectorStateSpace::StateType>()->values[0];
-	    dist_y = reference->as<base::RealVectorStateSpace::StateType>()->values[1] - 
+	    dist_y = dest->as<base::RealVectorStateSpace::StateType>()->values[1] - 
 	                                        stateTemp->as<base::RealVectorStateSpace::StateType>()->values[1];
-		dist_z = reference->as<base::RealVectorStateSpace::StateType>()->values[2] - 
-	                                        stateTemp->as<base::RealVectorStateSpace::StateType>()->values[2];
+		dist_z = z_ref - stateTemp->as<base::RealVectorStateSpace::StateType>()->values[2];
 
 	    dist_actual = sqrt(pow(dist_x,2) + pow(dist_y,2));
+    	heading = atan2(dist_y,dist_x);
+	    //printf("Tiempo: %f dist_actual: %f dist_z: %f\n",tiempo*stepSize, dist_actual, dist_z);
+
+    	z = stateTemp->as<base::RealVectorStateSpace::StateType>()->values[2];
+		yaw = stateTemp->as<base::RealVectorStateSpace::StateType>()->values[3];
+
 	    tiempo++;
 	}
 	
-	si_->copyState(dest, stateTemp);
-    si_->freeState(stateTemp);
-    si_->freeState(stateRes);
+	sinf->copyState(dest, stateTemp);
+    sinf->freeState(stateTemp);
+    sinf->freeState(stateRes);
+    sinf->freeControl(newControl);
+
+    printf("\n[AUVPID] result x: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[0]);
+	printf("[AUVPID] result y: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[1]);
+	printf("[AUVPID] result z: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[2]);
+	printf("[AUVPID] result yaw: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[3]);
+	printf("[AUVPID] result vx: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[4]);
+	printf("[AUVPID] result vy: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[5]);
+	printf("[AUVPID] result vz: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[6]);
+	printf("[AUVPID] result vyaw: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[7]);
     return tiempo;
 }
 
@@ -158,11 +194,13 @@ double ompl::controller::AUVPID::pid(double reference, double value, double dt, 
     double i = Ki * *integral;
 
     double d = Kd * (error - *pre_error)/dt;
-
+    /*printf("error = %f\n", error);
+    printf("pre error = %f\n", *pre_error);
+    printf("integral = %f\n", *integral);*/
     double output = p + i + d;
 
-    if(output > 1) output = 1;
-    else if(output < -1) output = -1;
+    if(output > 5) output = 5;
+    else if(output < -5) output = -5;
 
     *pre_error = error;
 

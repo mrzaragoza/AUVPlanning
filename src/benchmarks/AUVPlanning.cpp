@@ -3,7 +3,7 @@
 using namespace ompl;
 namespace oauv = ompl::auvplanning;
 
-#define DCS_TYPE  AUV_PID_DCS
+#define DCS_TYPE  AUV_SIMPLE_DCS
 
 void AUVRobotSetup(oauv::AUVRobotPtr& robot, YAML::Node config)
 {
@@ -65,8 +65,11 @@ void AUVRobotDemo(oauv::AUVRobotPtr& robot, YAML::Node config)
 
 	std:string planner_str = config["plan/planner"].as<std::string>();
 
+	bool hasController = false;
+
 	if (planner_str.compare("DynamicRRT") == 0){
-		robot->getSimpleSetup().setPlanner(base::PlannerPtr(new auvplanning::DynamicRRT(robot->getSimpleSetup().getSpaceInformation())));		
+		robot->getSimpleSetup().setPlanner(base::PlannerPtr(new auvplanning::DynamicRRT(robot->getSimpleSetup().getSpaceInformation())));
+		hasController = true;		
 	}else if (planner_str.compare("RRT") == 0){
 		robot->getSimpleSetup().setPlanner(base::PlannerPtr(new control::RRT(robot->getSimpleSetup().getSpaceInformation())));		
 	}else if (planner_str.compare("EST") == 0){
@@ -96,10 +99,25 @@ void AUVRobotDemo(oauv::AUVRobotPtr& robot, YAML::Node config)
 	if (robot->getSimpleSetup().solve(config["plan/time"].as<double>()))
 	{
 
-		control::PathControl& path(robot->getSimpleSetup().getSolutionPath());
-		path.printAsMatrix(std::cout);
-		path.interpolate(); // uncomment if you want to plot the path
-		path.printAsMatrix(benchmarkFile);
+		if(!hasController){
+			control::PathControl& path(robot->getSimpleSetup().getSolutionPath());
+			path.printAsMatrix(std::cout);
+			path.interpolate(); // uncomment if you want to plot the path
+			std::cout << "PathControl Interpolación hecha" << std::endl;
+			path.printAsMatrix(benchmarkFile);
+		}else{
+			const base::PathPtr &p = robot->getSimpleSetup().getProblemDefinition()->getSolutionPath();
+			auvplanning::PathController& pathC(static_cast<auvplanning::PathController&>(*p));
+			pathC.printAsMatrix(std::cout);
+			std::cout << "PathController Impresión hecha" << std::endl;
+			pathC.interpolate(); // uncomment if you want to plot the path
+			std::cout << "PathController Interpolación hecha" << std::endl;
+			pathC.printAsMatrix(std::cout);
+			//pathC.printAsMatrix(benchmarkFile);
+			std::cout << "PathController Impresión hecha" << std::endl;
+		}
+		
+
 		if (!robot->getSimpleSetup().haveExactSolutionPath())
 		{
 			std::cout << "Solution is approximate. Distance to actual goal is " <<
@@ -336,6 +354,95 @@ void moveAUV(oauv::AUVRobotPtr& robot, YAML::Node config){
 	printf("[moveAUV] End of sampleTo\n");*/
 }
 
+void controlAUV(oauv::AUVRobotPtr& robot, YAML::Node config){
+
+	robot->setup(DCS_TYPE);
+	printf("[controlAUV] Init\n");
+
+	base::State *state; 
+	state = robot->getSimpleSetup().getSpaceInformation()->allocState();
+	state->as<base::RealVectorStateSpace::StateType>()->values[0] = 600.0;
+	state->as<base::RealVectorStateSpace::StateType>()->values[1] = 120.0;
+	state->as<base::RealVectorStateSpace::StateType>()->values[2] = 100.0;
+	state->as<base::RealVectorStateSpace::StateType>()->values[3] = 0.0;
+	state->as<base::RealVectorStateSpace::StateType>()->values[4] = 0.0;
+	state->as<base::RealVectorStateSpace::StateType>()->values[5] = 0.0;
+	state->as<base::RealVectorStateSpace::StateType>()->values[6] = 0.0;
+	state->as<base::RealVectorStateSpace::StateType>()->values[7] = 0.0;
+	printf("state x: %f\n", state->as<base::RealVectorStateSpace::StateType>()->values[0]);
+	printf("state y: %f\n", state->as<base::RealVectorStateSpace::StateType>()->values[1]);
+	printf("state z: %f\n", state->as<base::RealVectorStateSpace::StateType>()->values[2]);
+	printf("state yaw: %f\n", state->as<base::RealVectorStateSpace::StateType>()->values[3]);
+	printf("state vx: %f\n", state->as<base::RealVectorStateSpace::StateType>()->values[4]);
+	printf("state vy: %f\n", state->as<base::RealVectorStateSpace::StateType>()->values[5]);
+	printf("state vz: %f\n", state->as<base::RealVectorStateSpace::StateType>()->values[6]);
+	printf("state vyaw: %f\n", state->as<base::RealVectorStateSpace::StateType>()->values[7]);
+
+	base::State *reference; 
+	reference = robot->getSimpleSetup().getSpaceInformation()->allocState();
+	reference->as<base::RealVectorStateSpace::StateType>()->values[0] = 550.0;
+	reference->as<base::RealVectorStateSpace::StateType>()->values[1] = 330.0;
+	reference->as<base::RealVectorStateSpace::StateType>()->values[2] = 100.0;
+	reference->as<base::RealVectorStateSpace::StateType>()->values[3] = 0.0;
+	reference->as<base::RealVectorStateSpace::StateType>()->values[4] = 0.0;
+	reference->as<base::RealVectorStateSpace::StateType>()->values[5] = 0.0;
+	reference->as<base::RealVectorStateSpace::StateType>()->values[6] = 0.0;
+	reference->as<base::RealVectorStateSpace::StateType>()->values[7] = 0.0;
+	printf("reference x: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[0]);
+	printf("reference y: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[1]);
+	printf("reference z: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[2]);
+	printf("reference yaw: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[3]);
+	printf("reference vx: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[4]);
+	printf("reference vy: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[5]);
+	printf("reference vz: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[6]);
+	printf("reference vyaw: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[7]);
+
+    controller::ControllerPtr controller(new controller::AUV2StepPID(robot->getSimpleSetup().getSpaceInformation().get()));
+
+    const unsigned int maxDuration = robot->getSimpleSetup().getSpaceInformation()->getMaxControlDuration();
+
+	printf("[controlAUV] Start of controller\n");
+    controller->propagateController(state, reference, maxDuration);
+	printf("result x: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[0]);
+	printf("result y: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[1]);
+	printf("result z: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[2]);
+	printf("result yaw: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[3]);
+	printf("result vx: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[4]);
+	printf("result vy: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[5]);
+	printf("result vz: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[6]);
+	printf("result vyaw: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[7]);
+	printf("[controlAUV] End of controller\n");
+	printf("[controlAUV] -------------------\n");
+
+	robot->getSimpleSetup().getSpaceInformation()->freeState(state);
+	robot->getSimpleSetup().getSpaceInformation()->freeState(reference);
+}
+
+
+void checkState(oauv::AUVRobotPtr& robot, YAML::Node config){
+
+	robot->setup(DCS_TYPE);
+	printf("[checkState] Init\n");
+
+	base::State *state; 
+	state = robot->getSimpleSetup().getSpaceInformation()->allocState();
+	state->as<base::RealVectorStateSpace::StateType>()->values[0] = config["general/start"][0].as<double>();
+	state->as<base::RealVectorStateSpace::StateType>()->values[1] = config["general/start"][1].as<double>();
+	state->as<base::RealVectorStateSpace::StateType>()->values[2] = config["general/start"][2].as<double>();
+	state->as<base::RealVectorStateSpace::StateType>()->values[3] = config["general/start"][3].as<double>();
+	state->as<base::RealVectorStateSpace::StateType>()->values[4] = config["general/start"][4].as<double>();
+	state->as<base::RealVectorStateSpace::StateType>()->values[5] = config["general/start"][5].as<double>();
+	state->as<base::RealVectorStateSpace::StateType>()->values[6] = config["general/start"][6].as<double>();
+	state->as<base::RealVectorStateSpace::StateType>()->values[7] = config["general/start"][7].as<double>();
+	robot->getSimpleSetup().getSpaceInformation()->printState(state);
+	bool isValid = robot->getStateValidityChecker()->isValid(state);
+	isValid? printf("Es válido\n"): printf("No es válido\n");;
+	
+}
+
+
+
+
 int main(int argc, char** argv)
 {
 
@@ -359,6 +466,10 @@ int main(int argc, char** argv)
 			AUVRobotSetup(robot,config);
 			moveAUV(robot, config);	
 
+		}else if(strcmp(argv[1],"-c") == 0){
+			AUVRobotSetup(robot,config);
+			controlAUV(robot, config);	
+
 		}else if(strcmp(argv[1],"-p") == 0){
 
 			if(argc < 3){
@@ -376,7 +487,7 @@ int main(int argc, char** argv)
 		}else if(strcmp(argv[1],"-b") == 0){
 
 			if(argc < 3){
-				printf("Por favor, introduzca el archivo de configuración a utilizar.\n");				
+				printf("Por favor, introduzca el archivo de configuración a utilizar.\n");	
 				return 0;
 			}
 
@@ -387,16 +498,17 @@ int main(int argc, char** argv)
 			AUVRobotSetup(robot,config);
 			AUVRobotBenchmark(robot,config);
 
-		}else if(strcmp(argv[1],"-s") == 0){
+		}else if(strcmp(argv[1],"-v") == 0){
 
 			if(argc < 3){
-				printf("Por favor, introduzca las tres actuaciones para ejecutar la dinámica.\n");
+				printf("Por favor, introduzca el archivo de configuración a utilizar.\n");
 				return 0;
 			}
 
 		    robot->getRigidBodyGeometry().setEnvironmentMesh(env_fname.c_str());
 			robot->getRigidBodyGeometry().setRobotMesh(robot_fname.c_str());
 			AUVRobotSetup(robot,config);
+			checkState(robot,config);
 
 		}else{
 			printf("Opción desconocida.\n");

@@ -24,17 +24,7 @@ namespace ompl
         public:
             AUVPIDControlSampler(const control::SpaceInformation *si, unsigned int k = 1, YAML::Node config = YAML::LoadFile("test.yaml"));
 
-            ~AUVPIDControlSampler();            
-
-            unsigned int getNumControlSamples () const
-            {
-                return numControlSamples_;
-            }
-
-            void setNumControlSamples (unsigned int numSamples)
-            {
-                numControlSamples_ = numSamples;
-            }
+            ~AUVPIDControlSampler();
 
             unsigned int sampleTo(control::Control *control, const base::State *source, base::State *dest);
 

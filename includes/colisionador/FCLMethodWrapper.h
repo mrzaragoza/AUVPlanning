@@ -18,6 +18,7 @@
 // OMPL and OMPL.app headers
 #include "colisionador/GeometrySpecification.h"
 #include "omplapp/geometry/detail/assimpUtil.h"
+//#include "src/colisionador/assimpUtil.h"
 
 // FCL Headers
 #include <fcl/collision.h>
