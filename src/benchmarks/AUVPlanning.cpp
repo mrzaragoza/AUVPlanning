@@ -3,10 +3,10 @@
 using namespace ompl;
 namespace oauv = ompl::auvplanning;
 
-#define DCS_TYPE  AUV_SIMPLE_DCS
+int getTypeControlSampler(std::string string_value);
+void printSolutionToFile(std::fstream &solutionFile, std::string quatFile_str, std::string controlsFile_str, bool modeController);
 
-void AUVRobotSetup(oauv::AUVRobotPtr& robot, YAML::Node config)
-{
+void AUVRobotSetup(oauv::AUVRobotPtr& robot, YAML::Node config){
 	base::StateSpacePtr StSpace(robot->getSimpleSetup().getStateSpace());
 
 	// define start state
@@ -44,26 +44,25 @@ void AUVRobotSetup(oauv::AUVRobotPtr& robot, YAML::Node config)
     printf ("FIN setup\n");
 }
 
-base::PlannerPtr myESTConfiguredPlanner(oauv::AUVRobotPtr& robot, double range)
-{
+base::PlannerPtr myESTConfiguredPlanner(oauv::AUVRobotPtr& robot, double range){
     control::EST *est = new control::EST(robot->getSimpleSetup().getSpaceInformation());
     est->setRange(range);
     est->setProjectionEvaluator("AUVProjection");
     return base::PlannerPtr(est);
 }
 
-base::PlannerPtr myKPIECE1ConfiguredPlanner(oauv::AUVRobotPtr& robot)
-{
+base::PlannerPtr myKPIECE1ConfiguredPlanner(oauv::AUVRobotPtr& robot){
     control::KPIECE1 *kpiece1 = new control::KPIECE1(robot->getSimpleSetup().getSpaceInformation());
     kpiece1->setProjectionEvaluator("AUVProjection");
     return base::PlannerPtr(kpiece1);
 }
 
+void AUVRobotDemo(oauv::AUVRobotPtr& robot, YAML::Node config){
 
-void AUVRobotDemo(oauv::AUVRobotPtr& robot, YAML::Node config)
-{
-
-	std:string planner_str = config["plan/planner"].as<std::string>();
+	std::string planner_str = config["plan/planner"].as<std::string>();
+	std::string solutionFile_str = config["plan/solutionFile"].as<std::string>();
+	std::string solutionQuatFile_str = config["plan/solutionQuatFile"].as<std::string>();
+	std::string solutionControlsFile_str = config["plan/solutionControlsFile"].as<std::string>();
 
 	bool hasController = false;
 
@@ -84,16 +83,14 @@ void AUVRobotDemo(oauv::AUVRobotPtr& robot, YAML::Node config)
 		
 	}
 
-	robot->setup(DCS_TYPE);
+	robot->setup(getTypeControlSampler(config["plan/controlSampler"].as<std::string>()));
 
 	robot->getSimpleSetup().getPlanner()->printProperties(std::cout);
 	robot->getSimpleSetup().getPlanner()->printSettings(std::cout);
 	robot->getSimpleSetup().getStateSpace()->printSettings(std::cout);
 
 	std::fstream benchmarkFile;
-	std::ofstream benchmarkWithQuatFile;
-	std::ofstream benchmarkControls;
-  	benchmarkFile.open (config["plan/solutionFile"].as<std::string>(), std::fstream::in | std::fstream::out | std::fstream::trunc);
+  	benchmarkFile.open (solutionFile_str, std::fstream::in | std::fstream::out | std::fstream::trunc);
 
 	// try to solve the problem
 	if (robot->getSimpleSetup().solve(config["plan/time"].as<double>()))
@@ -105,18 +102,22 @@ void AUVRobotDemo(oauv::AUVRobotPtr& robot, YAML::Node config)
 			path.interpolate(); // uncomment if you want to plot the path
 			std::cout << "PathControl Interpolación hecha" << std::endl;
 			path.printAsMatrix(benchmarkFile);
+			//benchmarkFile.close();
+    		printSolutionToFile(benchmarkFile, solutionQuatFile_str, solutionControlsFile_str, false);
 		}else{
 			const base::PathPtr &p = robot->getSimpleSetup().getProblemDefinition()->getSolutionPath();
 			auvplanning::PathController& pathC(static_cast<auvplanning::PathController&>(*p));
 			pathC.printAsMatrix(std::cout);
 			std::cout << "PathController Impresión hecha" << std::endl;
-			pathC.interpolate(); // uncomment if you want to plot the path
-			std::cout << "PathController Interpolación hecha" << std::endl;
-			pathC.printAsMatrix(std::cout);
-			//pathC.printAsMatrix(benchmarkFile);
+			//pathC.interpolate(); // uncomment if you want to plot the path
+			//std::cout << "PathController Interpolación hecha" << std::endl;
+			//pathC.printAsMatrix(std::cout);
+			pathC.printAsMatrix(benchmarkFile);
 			std::cout << "PathController Impresión hecha" << std::endl;
+			//benchmarkFile.close();
+    		printSolutionToFile(benchmarkFile, solutionQuatFile_str, solutionControlsFile_str, true);
 		}
-		
+		benchmarkFile.close();
 
 		if (!robot->getSimpleSetup().haveExactSolutionPath())
 		{
@@ -131,67 +132,10 @@ void AUVRobotDemo(oauv::AUVRobotPtr& robot, YAML::Node config)
 	/*unsigned int llamadas_colisionador = robot->getStateValidityChecker().get()->FCLStateValidityChecker::getCallCounter();
 
 	printf("Llamadas al colisionador: %d\n", llamadas_colisionador);*/
-
-  	benchmarkWithQuatFile.open (config["plan/solutionQuatFile"].as<std::string>(), std::fstream::out | std::fstream::trunc);
-  	benchmarkControls.open (config["plan/solutionControlsFile"].as<std::string>(), std::fstream::out | std::fstream::trunc);
-
-    benchmarkFile.seekg (0, ios::beg);
-    double num = 0.0;
-    int index = 0;
-	while(benchmarkFile >> num){
-		index++;
-
-		switch(index){
-			case 1:
-			case 2:
-			case 3:
-			{
-				benchmarkWithQuatFile << num;
-				benchmarkWithQuatFile << " ";
-				break;
-			}
-			case 4:	
-			{
-				fcl::Quaternion3f quat;
-    			fcl::Vec3f zaxis(0., 0., 1.); //se pone así porque tiene que ser un vector unitario
-    			quat.fromAxisAngle(zaxis, num);
-				benchmarkWithQuatFile << quat.getX ();
-				benchmarkWithQuatFile << " ";
-				benchmarkWithQuatFile << quat.getY ();
-				benchmarkWithQuatFile << " ";
-				benchmarkWithQuatFile << quat.getZ ();
-				benchmarkWithQuatFile << " ";
-				benchmarkWithQuatFile << quat.getW ();
-				benchmarkWithQuatFile << " ";
-				break;
-			}
-			case 9:
-			case 10:
-			case 11:
-			{
-				benchmarkControls << num;
-				benchmarkControls << " ";
-				break;
-			}
-			case 12:
-			{
-				benchmarkControls << num;
-				benchmarkControls << " ";
-				index = 0;
-				benchmarkWithQuatFile << "\n";
-				benchmarkControls << "\n";
-				break;
-			}
-		}		
-	}
-
-  	benchmarkFile.close();
-  	benchmarkWithQuatFile.close();
-  	benchmarkControls.close();
+  	
 }
 
-void AUVRobotBenchmark(oauv::AUVRobotPtr& robot, YAML::Node config)
-{
+void AUVRobotBenchmark(oauv::AUVRobotPtr& robot, YAML::Node config){
 
 	double runtime = config["benchmark/runtime"].as<double>();
 	double runmemory = config["benchmark/runmemory"].as<double>();
@@ -201,7 +145,7 @@ void AUVRobotBenchmark(oauv::AUVRobotPtr& robot, YAML::Node config)
 	request.displayProgress = config["benchmark/displayProgress"].as<bool>();
 	request.useThreads = config["benchmark/useThreads"].as<bool>();
 
-    robot->setup(DCS_TYPE);
+    robot->setup(getTypeControlSampler(config["benchmark/controlSampler"].as<std::string>()));
 
     tools::Benchmark b(robot->getSimpleSetup(), config["benchmark/testname"].as<std::string>());
     //b.addExperimentParameter("save_paths", "INTEGER", "10")
@@ -249,7 +193,7 @@ void AUVRobotBenchmark(oauv::AUVRobotPtr& robot, YAML::Node config)
 
 void moveAUV(oauv::AUVRobotPtr& robot, YAML::Node config){
 
-	robot->setup(DCS_TYPE);
+	robot->setup(getTypeControlSampler(config["plan/controlSampler"].as<std::string>()));
 	double t1 = config["dynamics/th1"].as<double>();
 	double t2 = config["dynamics/th2"].as<double>();
 	double t3 = config["dynamics/th3"].as<double>();
@@ -356,7 +300,7 @@ void moveAUV(oauv::AUVRobotPtr& robot, YAML::Node config){
 
 void controlAUV(oauv::AUVRobotPtr& robot, YAML::Node config){
 
-	robot->setup(DCS_TYPE);
+	robot->setup(getTypeControlSampler(config["plan/controlSampler"].as<std::string>()));
 	printf("[controlAUV] Init\n");
 
 	base::State *state; 
@@ -418,10 +362,8 @@ void controlAUV(oauv::AUVRobotPtr& robot, YAML::Node config){
 	robot->getSimpleSetup().getSpaceInformation()->freeState(reference);
 }
 
-
 void checkState(oauv::AUVRobotPtr& robot, YAML::Node config){
-
-	robot->setup(DCS_TYPE);
+	robot->setup(getTypeControlSampler(config["plan/controlSampler"].as<std::string>()));
 	printf("[checkState] Init\n");
 
 	base::State *state; 
@@ -437,22 +379,153 @@ void checkState(oauv::AUVRobotPtr& robot, YAML::Node config){
 	robot->getSimpleSetup().getSpaceInformation()->printState(state);
 	bool isValid = robot->getStateValidityChecker()->isValid(state);
 	isValid? printf("Es válido\n"): printf("No es válido\n");;
-	
 }
 
+int getTypeControlSampler(std::string string_value){
+	int value = -1;
+    value = (string_value.compare("Random") == 0)? AUV_SIMPLE_DCS : -1;
+    value = (string_value.compare("SemiRandom") == 0)? AUV_SEMI_RANDOM_DCS : -1;
+    //value = (string_value.compare("AUV_DIRECTED_DCS") == 0)? AUV_DIRECTED_DCS : -1;
+    value = (string_value.compare("PID") == 0)? AUV_PID_DCS : -1;
+    value = (string_value.compare("2StepsPID") == 0)? AUV_2PID_DCS : -1;
 
+    return value;	
+}
 
+void printSolutionToFile(std::fstream &solutionFile, std::string quatFile_str, std::string controlsFile_str, bool modeController){
+	std::ofstream quatFile;
+	std::ofstream controlsFile;
 
-int main(int argc, char** argv)
-{
+  	quatFile.open (quatFile_str, std::fstream::out | std::fstream::trunc);
+  	controlsFile.open (controlsFile_str, std::fstream::out | std::fstream::trunc);
 
+	solutionFile.seekg (0, ios::beg);
+    double num = 0.0;
+    int index = 0;
+	while(solutionFile >> num){
+		index++;
+		if(!modeController){
+			switch(index){
+				case 1:
+				case 2:
+				case 3:
+				{
+					quatFile << num;
+					quatFile << " ";
+					break;
+				}
+				case 4:	
+				{
+					fcl::Quaternion3f quat;
+	    			fcl::Vec3f zaxis(0., 0., 1.); //se pone así porque tiene que ser un vector unitario
+	    			quat.fromAxisAngle(zaxis, num);
+					quatFile << quat.getX ();
+					quatFile << " ";
+					quatFile << quat.getY ();
+					quatFile << " ";
+					quatFile << quat.getZ ();
+					quatFile << " ";
+					quatFile << quat.getW ();
+					quatFile << " ";
+					break;
+				}
+				case 9:
+				case 10:
+				case 11:
+				{
+					controlsFile << num;
+					controlsFile << " ";
+					break;
+				}
+				case 12:
+				{
+					controlsFile << num;
+					controlsFile << " ";
+					index = 0;
+					quatFile << "\n";
+					controlsFile << "\n";
+					break;
+				}
+			}		
+		}else{
+			switch(index){
+				case 1:
+				case 2:
+				case 3:
+				{
+					quatFile << num;
+					quatFile << " ";
+					break;
+				}
+				case 4:	
+				{
+					fcl::Quaternion3f quat;
+	    			fcl::Vec3f zaxis(0., 0., 1.); //se pone así porque tiene que ser un vector unitario
+	    			quat.fromAxisAngle(zaxis, num);
+					quatFile << quat.getX ();
+					quatFile << " ";
+					quatFile << quat.getY ();
+					quatFile << " ";
+					quatFile << quat.getZ ();
+					quatFile << " ";
+					quatFile << quat.getW ();
+					quatFile << " ";
+					break;
+				}
+				case 9:
+				case 10:
+				case 11:
+				{
+					controlsFile << num;
+					controlsFile << " ";
+					break;
+				}
+				case 12:
+				{
+					fcl::Quaternion3f quat;
+	    			fcl::Vec3f zaxis(0., 0., 1.); //se pone así porque tiene que ser un vector unitario
+	    			quat.fromAxisAngle(zaxis, num);
+					controlsFile << quat.getX ();
+					controlsFile << " ";
+					controlsFile << quat.getY ();
+					controlsFile << " ";
+					controlsFile << quat.getZ ();
+					controlsFile << " ";
+					controlsFile << quat.getW ();
+					controlsFile << " ";
+					break;
+				}
+				case 17:
+				{					
+					quatFile << "\n";
+					controlsFile << num << "\n";
+					index = 0;
+					break;
+				}
+			}
+		}
+	}
 
+  	quatFile.close();
+  	controlsFile.close();
+}
+
+int main(int argc, char** argv){
 	if (argc < 2){
 		printf("Por favor, introduzca una de las opciones para ejecutar el programa.\n");
-		return 0;
 	}else if(argc < 3){
-		printf("Por favor, introduzca el fichero de configuracion.\n");
-		return 0;
+
+		if(strcmp(argv[1],"-h") == 0){
+			printf("Opciones disponibles:\n");
+			printf("-d : \n");
+			printf("-c : \n");
+			printf("-p : \n");
+			printf("-b : \n");
+			printf("-v : \n");
+			printf("-h : \n");
+		}else{
+			printf("Por favor, introduzca el fichero de configuracion.\n");
+		}
 	}else{
 
 		YAML::Node config = YAML::LoadFile(argv[2]);
@@ -471,40 +544,18 @@ int main(int argc, char** argv)
 			controlAUV(robot, config);	
 
 		}else if(strcmp(argv[1],"-p") == 0){
-
-			if(argc < 3){
-				printf("Por favor, introduzca el archivo de configuración a utilizar.\n");
-				return 0;
-			}
-
-			const char* configFileName = argv[2];
-
 		    robot->getRigidBodyGeometry().setEnvironmentMesh(env_fname.c_str());
 			robot->getRigidBodyGeometry().setRobotMesh(robot_fname.c_str());
 			AUVRobotSetup(robot,config);
 			AUVRobotDemo(robot,config);
 
 		}else if(strcmp(argv[1],"-b") == 0){
-
-			if(argc < 3){
-				printf("Por favor, introduzca el archivo de configuración a utilizar.\n");	
-				return 0;
-			}
-
-			const char* configFileName = argv[2];
-			
 		    robot->getRigidBodyGeometry().setEnvironmentMesh(env_fname.c_str());
 			robot->getRigidBodyGeometry().setRobotMesh(robot_fname.c_str());
 			AUVRobotSetup(robot,config);
 			AUVRobotBenchmark(robot,config);
 
 		}else if(strcmp(argv[1],"-v") == 0){
-
-			if(argc < 3){
-				printf("Por favor, introduzca el archivo de configuración a utilizar.\n");
-				return 0;
-			}
-
 		    robot->getRigidBodyGeometry().setEnvironmentMesh(env_fname.c_str());
 			robot->getRigidBodyGeometry().setRobotMesh(robot_fname.c_str());
 			AUVRobotSetup(robot,config);
@@ -512,10 +563,8 @@ int main(int argc, char** argv)
 
 		}else{
 			printf("Opción desconocida.\n");
-			return 0;
 		}
 	}
 
 	return 0;
-
 }

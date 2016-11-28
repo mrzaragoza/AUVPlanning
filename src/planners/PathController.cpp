@@ -159,7 +159,7 @@ void ompl::auvplanning::PathController::interpolate()
     referenceStates_.swap(newReferenceStates);
     controlDurations_.swap(newControlDurations);
 
-
+    printAsMatrix(std::cout);
 
 
     printf("interpolate: newcurrentStates_: %ld \n",currentStates_.size());

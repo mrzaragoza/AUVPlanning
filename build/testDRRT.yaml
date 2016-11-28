@@ -1,6 +1,6 @@
-general/propStepSize: 0.05
-general/minControlDuration: 20
-general/maxControlDuration: 100
+general/propStepSize: 0.01
+general/minControlDuration: 200
+general/maxControlDuration: 1000
 general/checkresolution: 0.1
 general/distanceToGoal: 1.5
 
@@ -19,11 +19,11 @@ dynamics/th2: 1.0
 dynamics/th3: 1.0
 
 plan/time: 150
-plan/solutionFile: "benchmarkDebugRRT8.txt"
-plan/solutionQuatFile: "benchmarkWithQuatDebugRRT8.txt"
-plan/solutionControlsFile: "benchmarkControlsRRT8.txt"
-plan/planner: "RRT"
-plan/controlSampler: "SemiRandom" #Random, SemiRandom || DynamicRRT -> 2StepsPID, PID
+plan/solutionFile: "benchmarkDebugDynamicRRT2.txt"
+plan/solutionQuatFile: "benchmarkWithQuatDebugDynamicRRT2.txt"
+plan/solutionControlsFile: "benchmarkControlsDynamicRRT2.txt"
+plan/planner: "DynamicRRT"
+plan/controlSampler: "2StepsPID" #Random, SemiRandom || DynamicRRT -> 2StepsPID, PID
 plan/ESTrange: 10
 
 benchmark/testname: "REKPTest con PID Sampler"

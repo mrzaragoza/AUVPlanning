@@ -32,7 +32,7 @@ using namespace ompl;
 #define AUV_SEMI_RANDOM_DCS   1
 #define AUV_2PID_DCS          2
 #define AUV_PID_DCS           3
-#define AUV_DIRECTED_DCS      4
+//#define AUV_DIRECTED_DCS      4
 
 
 namespace ompl
@@ -78,10 +78,9 @@ namespace ompl
 
   protected:
 
-    //static ompl::control::SpaceInformationPtr AUVSpaceInformationAllocator(bool compound);
     static ompl::control::DirectedControlSamplerPtr AUV2StepPIDControlSamplerAllocator(const ompl::control::SpaceInformation *si, YAML::Node config);
     static ompl::control::DirectedControlSamplerPtr AUVPIDControlSamplerAllocator(const ompl::control::SpaceInformation *si, unsigned int k, YAML::Node config);
-    static ompl::control::DirectedControlSamplerPtr AUVDirectedControlSamplerAllocator(const ompl::control::SpaceInformation *si, unsigned int k, YAML::Node config);
+    //static ompl::control::DirectedControlSamplerPtr AUVDirectedControlSamplerAllocator(const ompl::control::SpaceInformation *si, unsigned int k, YAML::Node config);
     static ompl::control::DirectedControlSamplerPtr AUVSemiRandomDirectedControlSamplerAllocator(const ompl::control::SpaceInformation *si, unsigned int k, YAML::Node config);
     static ompl::control::DirectedControlSamplerPtr RandomDirectedControlSamplerAllocator(const ompl::control::SpaceInformation *si, unsigned int k);
 

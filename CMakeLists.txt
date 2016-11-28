@@ -21,12 +21,7 @@ MESSAGE( STATUS "FCL INCLUDE DIRECTORY " ${FCL_INCLUDE_DIRS} )
 MESSAGE( STATUS "BOOST INCLUDE DIRECTORY " ${Boost_INCLUDE_DIRS} )
 MESSAGE( STATUS "BOOST LIBRARY DIRECTORY " ${Boost_LIBRARIES} )
 
-#if(CMAKE_COMPILER_IS_GNUCXX)
-#    set(CMAKE_CXX_FLAGS "-O2")        ## Optimize
-#    set(CMAKE_EXE_LINKER_FLAGS "-s")  ## Strip binary
-#endif()
-
-set(CMAKE_CXX_FLAGS "-O4 -fpermissive -lompl -lompl_app_base -lboost_system -lyaml-cpp")
+set(CMAKE_CXX_FLAGS "-O8 -fpermissive -lompl -lompl_app_base -lboost_system -lyaml-cpp")
 
 include_directories( includes ${OMPL_INCLUDE_DIRS} ${OMPLAPP_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} ${FCL_INCLUDE_DIRS} )
 LINK_DIRECTORIES ( ${Boost_LIBRARY_DIRS} )

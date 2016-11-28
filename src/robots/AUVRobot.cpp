@@ -140,11 +140,11 @@ ompl::control::DirectedControlSamplerPtr ompl::auvplanning::AUVRobot::AUVSemiRan
 {
     return ompl::control::DirectedControlSamplerPtr(new oauv::AUVSemiRandomDirectedControlSampler(si, k, config));
 }
-
+/* //Control Sampler para la opción de tener un espacio de controles compuesto, pero se ha descartado esa idea.
 ompl::control::DirectedControlSamplerPtr ompl::auvplanning::AUVRobot::AUVDirectedControlSamplerAllocator(const ompl::control::SpaceInformation *si, unsigned int k, YAML::Node config)
 {
     return ompl::control::DirectedControlSamplerPtr(new oauv::AUVDirectedControlSampler(si, k, config));
-}
+}*/
 
 ompl::control::DirectedControlSamplerPtr ompl::auvplanning::AUVRobot::AUV2StepPIDControlSamplerAllocator(const ompl::control::SpaceInformation *si, YAML::Node config)
 {
@@ -171,10 +171,10 @@ void ompl::auvplanning::AUVRobot::setDirectedControlSampler(int type){
             break;
         case AUV_SEMI_RANDOM_DCS:
             dcsa = boost::bind(AUVSemiRandomDirectedControlSamplerAllocator, sinf_.get(), 15, config_);
-            break;
+            break;/*
         case AUV_DIRECTED_DCS:
             dcsa = boost::bind(AUVDirectedControlSamplerAllocator, sinf_.get(), 15, config_);
-            break;
+            break;*/
         case AUV_PID_DCS:
             dcsa = boost::bind(AUVPIDControlSamplerAllocator, sinf_.get(), 15, config_);
             break;

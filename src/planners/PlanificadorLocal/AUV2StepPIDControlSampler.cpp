@@ -56,7 +56,7 @@ reference(si->allocState())
 
 ompl::auvplanning::AUV2StepPIDControlSampler::~AUV2StepPIDControlSampler()
 {
-    si_->freeState(reference);
+    //si_->freeState(reference);
 }
 
 unsigned int ompl::auvplanning::AUV2StepPIDControlSampler::sampleTo(control::Control *control, const base::State *source, base::State *dest)
@@ -95,6 +95,8 @@ unsigned int ompl::auvplanning::AUV2StepPIDControlSampler::propagation(control::
     double              dist_actual = sqrt(pow(dist_x,2) + pow(dist_y,2));
 
     bool                hasArrived = (pre_erroryaw != 0 && fabs(pre_erroryaw) < rango_yaw_objetivo) ? true : false;
+
+    bool                hasCollided = false;
 
     while(tiempo <= minDuration && !hasArrived){
 
@@ -145,6 +147,7 @@ unsigned int ompl::auvplanning::AUV2StepPIDControlSampler::propagation(control::
 
         if(!si_->isValid(stateRes)){
             //printf("propagation. NO VALIDO!!\n");
+            hasCollided = true;
             break;
         }
         si_->copyState(stateTemp,stateRes);
@@ -155,7 +158,7 @@ unsigned int ompl::auvplanning::AUV2StepPIDControlSampler::propagation(control::
 
     hasArrived = (pre_errorsurge != 0 && (fabs(pre_errorsurge) < rango_dist_objetivo && fabs(pre_errorz) < rango_profundidad_max_objetivo)) ? true : false;
     
-    while(tiempo <= minDuration && !hasArrived){
+    while(tiempo <= minDuration && !hasArrived && !hasCollided){
         z = stateTemp->as<base::RealVectorStateSpace::StateType>()->values[2];
         dist_x = dest->as<base::RealVectorStateSpace::StateType>()->values[0] - stateTemp->as<base::RealVectorStateSpace::StateType>()->values[0];
         dist_y = dest->as<base::RealVectorStateSpace::StateType>()->values[1] - stateTemp->as<base::RealVectorStateSpace::StateType>()->values[1];
@@ -201,6 +204,7 @@ unsigned int ompl::auvplanning::AUV2StepPIDControlSampler::propagation(control::
 
         if(!si_->isValid(stateRes)){
             //printf("propagation. NO VALIDO!!\n");
+            hasCollided = true;
             break;
         }
         sinf->copyState(stateTemp,stateRes);
@@ -245,6 +249,13 @@ double ompl::auvplanning::AUV2StepPIDControlSampler::pid(double reference, doubl
 
 void ompl::auvplanning::AUV2StepPIDControlSampler::isPIDResetNeeded(const base::State *init, const base::State *dest){
 
+    /*printf("Ref: %f %f %f Dest: %f %f %f ",reference->as<base::RealVectorStateSpace::StateType>()->values[0],
+        reference->as<base::RealVectorStateSpace::StateType>()->values[1],
+        reference->as<base::RealVectorStateSpace::StateType>()->values[2],
+        dest->as<base::RealVectorStateSpace::StateType>()->values[0],
+        dest->as<base::RealVectorStateSpace::StateType>()->values[1],
+        dest->as<base::RealVectorStateSpace::StateType>()->values[2]);
+    printf("\r");*/
     if(si_->equalStates(reference,dest) == false){
         si_->copyState(reference, dest);
 
@@ -262,6 +273,6 @@ void ompl::auvplanning::AUV2StepPIDControlSampler::isPIDResetNeeded(const base::
         integralz = 0;
         integralsurge = 0;
         integralyaw = 0;
-        printf("Reset done\n");
+        //printf("Reset done: %f %f %f %f %f %f \n",pre_errorz,pre_errorsurge,pre_erroryaw,integralz,integralsurge,integralyaw);
     }
 }

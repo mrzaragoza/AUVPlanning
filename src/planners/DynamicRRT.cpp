@@ -149,13 +149,13 @@ ompl::base::PlannerStatus ompl::auvplanning::DynamicRRT::solve(const base::Plann
         base::State *intermediate_final_state = si_->allocState();
         
         //Total distance
-        double tdist = si_->distance(nmotion->currentState, rmotion->currentState);
+        //double tdist = si_->distance(nmotion->currentState, rmotion->currentState);
         /*int max_num_intermediate_states = 10;
         int num_intermediate_states = 0;*/
         unsigned int tiempo = 0;
         unsigned int t = minDuration;
 
-        while((tiempo < maxDuration || t > minDuration) && ptc == false && solution == NULL){
+        while((tiempo < maxDuration && t == minDuration) && ptc == false && solution == NULL){
             /*si_->distance(intermediate_state, rmotion->currentState) > 0.2*tdist && num_intermediate_states < max_num_intermediate_states*/ 
         	//printf("hola\n");
         	si_->copyState(intermediate_final_state, rstate);
