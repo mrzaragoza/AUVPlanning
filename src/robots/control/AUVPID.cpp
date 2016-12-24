@@ -47,13 +47,13 @@ ompl::controller::AUVPID::AUVPID(const control::SpaceInformation *si) : Controll
 
 unsigned int ompl::controller::AUVPID::propagation(const base::State *source, base::State *dest, unsigned int steps, bool checkValidity)
 {
-    const unsigned int maxDuration = sinf->getMaxControlDuration();
+    const unsigned int maxDuration = si_->getMaxControlDuration();
 
-    control::Control *newControl = sinf->allocControl();
+    control::Control *newControl = si_->allocControl();
 
-    base::State         *stateTemp = sinf->allocState();
-    base::State         *stateRes = sinf->allocState();
-    sinf->copyState(stateTemp,source);	
+    base::State         *stateTemp = si_->allocState();
+    base::State         *stateRes = si_->allocState();
+    si_->copyState(stateTemp,source);	
 
     double 				z = source->as<base::RealVectorStateSpace::StateType>()->values[2];
     double 				yaw = source->as<base::RealVectorStateSpace::StateType>()->values[3];
@@ -133,7 +133,7 @@ unsigned int ompl::controller::AUVPID::propagation(const base::State *source, ba
 	
     	stPropagator->propagate(stateTemp,newControl,stepSize,stateRes);
 
-    	sinf->copyState(stateTemp,stateRes);
+    	si_->copyState(stateTemp,stateRes);
 
     	printf("%f %f %f %f %f %f %f %f", stateRes->as<base::RealVectorStateSpace::StateType>()->values[0],
     	stateRes->as<base::RealVectorStateSpace::StateType>()->values[1],
@@ -162,10 +162,10 @@ unsigned int ompl::controller::AUVPID::propagation(const base::State *source, ba
 	    tiempo++;
 	}
 	
-	sinf->copyState(dest, stateTemp);
-    sinf->freeState(stateTemp);
-    sinf->freeState(stateRes);
-    sinf->freeControl(newControl);
+	si_->copyState(dest, stateTemp);
+    si_->freeState(stateTemp);
+    si_->freeState(stateRes);
+    si_->freeControl(newControl);
 
     printf("\n[AUVPID] result x: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[0]);
 	printf("[AUVPID] result y: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[1]);

@@ -34,6 +34,8 @@ using namespace ompl;
 #define AUV_PID_DCS           3
 //#define AUV_DIRECTED_DCS      4
 
+#define NORMAL_DISTANCE       0
+#define PROPAGATE_DISTANCE    1
 
 namespace ompl
 {
@@ -74,10 +76,20 @@ namespace ompl
     auvplanning::RigidBodyGeometry&  getRigidBodyGeometry(){   return rbg_;          }            
     base::StateValidityCheckerPtr&  getStateValidityChecker(){ return validitySvc_;  }
     void setDirectedControlSampler(int type);
+    //void setDistanceFunction(int type);
+
+    int getCollisionCounter(){
+      return static_cast<FCLStateValidityChecker*>(validitySvc_.get())->getCallCounter();
+    }
+
+    void resetCollisionCounter(){
+      static_cast<FCLStateValidityChecker*>(validitySvc_.get())->resetCallCounter();
+    }
 
 
   protected:
 
+    //double propagateDistanceFunction(const base::State *state1, const base::State *state2) const ;
     static ompl::control::DirectedControlSamplerPtr AUV2StepPIDControlSamplerAllocator(const ompl::control::SpaceInformation *si, YAML::Node config);
     static ompl::control::DirectedControlSamplerPtr AUVPIDControlSamplerAllocator(const ompl::control::SpaceInformation *si, unsigned int k, YAML::Node config);
     //static ompl::control::DirectedControlSamplerPtr AUVDirectedControlSamplerAllocator(const ompl::control::SpaceInformation *si, unsigned int k, YAML::Node config);

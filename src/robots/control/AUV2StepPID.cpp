@@ -47,16 +47,16 @@ ompl::controller::AUV2StepPID::AUV2StepPID(const control::SpaceInformation *si) 
 
 unsigned int ompl::controller::AUV2StepPID::propagation(const base::State *source, base::State *dest, unsigned int steps, bool checkValidity)
 {
-    //const unsigned int maxDuration = sinf->getMaxControlDuration();
+    //const unsigned int maxDuration = si_->getMaxControlDuration();
 
-    control::Control    *newControl = sinf->allocControl();
-    base::State         *stateTemp = sinf->allocState();
-    base::State         *stateRes = sinf->allocState();
-    sinf->copyState(stateTemp,source);  
+    control::Control    *newControl = si_->allocControl();
+    base::State         *stateTemp = si_->allocState();
+    base::State         *stateRes = si_->allocState();
+    si_->copyState(stateTemp,source);  
 
-/*
-    sinf->printState(source);
-    sinf->printState(dest);*/
+    /*
+    si_->printState(source);
+    si_->printState(dest);*/
 
     double              pre_errorz = 0, pre_errorsurge = 0, pre_erroryaw = 0, integralz = 0, integralsurge = 0, integralyaw = 0;
 
@@ -125,7 +125,7 @@ unsigned int ompl::controller::AUV2StepPID::propagation(const base::State *sourc
     
         stPropagator->propagate(stateTemp,newControl,stepSize,stateRes);
 
-        sinf->copyState(stateTemp,stateRes);
+        si_->copyState(stateTemp,stateRes);
 
         /*printf("%f %f %f %f %f %f %f %f err_z: %f  err_yaw: %f", stateRes->as<base::RealVectorStateSpace::StateType>()->values[0],
         stateRes->as<base::RealVectorStateSpace::StateType>()->values[1],
@@ -191,9 +191,9 @@ unsigned int ompl::controller::AUV2StepPID::propagation(const base::State *sourc
     
         stPropagator->propagate(stateTemp,newControl,stepSize,stateRes);
 
-        sinf->copyState(stateTemp,stateRes);
+        si_->copyState(stateTemp,stateRes);
 
-/*
+    /*
         printf("%f %f %f %f %f %f %f %f dist actual : %f", stateRes->as<base::RealVectorStateSpace::StateType>()->values[0],
         stateRes->as<base::RealVectorStateSpace::StateType>()->values[1],
         stateRes->as<base::RealVectorStateSpace::StateType>()->values[2],
@@ -214,11 +214,11 @@ unsigned int ompl::controller::AUV2StepPID::propagation(const base::State *sourc
     //
    /* printf("\n");*/
     
-    sinf->copyState(dest, stateTemp);
-    sinf->freeState(stateTemp);
-    sinf->freeState(stateRes);
-    sinf->freeControl(newControl);
-/*
+    si_->copyState(dest, stateTemp);
+    si_->freeState(stateTemp);
+    si_->freeState(stateRes);
+    si_->freeControl(newControl);
+    /*
     printf("[AUVPID] Tiempo simulado: %f\n", tiempo*stepSize);
     printf("[AUVPID] result x: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[0]);
     printf("[AUVPID] result y: %f\n", dest->as<base::RealVectorStateSpace::StateType>()->values[1]);
@@ -256,5 +256,4 @@ double ompl::controller::AUV2StepPID::pid(double reference, double value, double
     *pre_error = error;
 
     return output;
-
 }

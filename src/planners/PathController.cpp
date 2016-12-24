@@ -81,16 +81,20 @@ void ompl::auvplanning::PathController::print(std::ostream &out) const
 
 void ompl::auvplanning::PathController::printAsMatrix(std::ostream &out) const
 {
+    printf("Entra en ompl::auvplanning::PathController::printAsMatrix\n");
     if (currentStates_.empty())
         return;
     const base::StateSpace* space(si_->getStateSpace().get());
     std::vector<double> reals, reals_ref;
 
+    int aa = si_->getStateDimension();
+    printf("Dimension del espacio de estados : %d\n", aa );
     space->copyToReals(reals, currentStates_[0]);
     std::copy(reals.begin(), reals.end(), std::ostream_iterator<double>(out, " "));
     if (referenceStates_.empty())
         return;
-
+    int adadad = space->getDimension();
+    printf("Puntero Dimension del espacio de estados : %d\n", adadad );
     for (unsigned int i = 0 ; i < space->getDimension(); ++i)
         out << "0 ";
     out << '0' << std::endl;
@@ -104,6 +108,7 @@ void ompl::auvplanning::PathController::printAsMatrix(std::ostream &out) const
         std::copy(reals_ref.begin(), reals_ref.end(), std::ostream_iterator<double>(out, " "));
         out << controlDurations_[i] << std::endl;
     }
+    printf("Sale de ompl::auvplanning::PathController::printAsMatrix\n");
 }
 
 void ompl::auvplanning::PathController::interpolate()
@@ -159,8 +164,9 @@ void ompl::auvplanning::PathController::interpolate()
     referenceStates_.swap(newReferenceStates);
     controlDurations_.swap(newControlDurations);
 
-    printAsMatrix(std::cout);
+    //printAsMatrix(std::cout);
 
+    //controller.reset();
 
     printf("interpolate: newcurrentStates_: %ld \n",currentStates_.size());
     printf("interpolate: newreferenceStates_: %ld \n",referenceStates_.size());

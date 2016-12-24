@@ -220,7 +220,6 @@ ompl::base::PlannerStatus ompl::auvplanning::DynamicRRT::solve(const base::Plann
         /* set the solution path */
         PathController *path = new PathController(si_);
         for (int i = mpath.size() - 1 ; i >= 0 ; --i){
-        	printf("A\n");
             if (mpath[i]->parent)
                 path->append(mpath[i]->currentState, mpath[i]->referenceState, mpath[i]->steps * siC_->getPropagationStepSize());
             else

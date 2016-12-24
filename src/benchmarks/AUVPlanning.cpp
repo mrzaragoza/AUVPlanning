@@ -3,10 +3,10 @@
 using namespace ompl;
 namespace oauv = ompl::auvplanning;
 
-int getTypeControlSampler(std::string string_value);
-void printSolutionToFile(std::fstream &solutionFile, std::string quatFile_str, std::string controlsFile_str, bool modeController);
+int Main::runCounter = 0;
+YAML::Node Main::config;
 
-void AUVRobotSetup(oauv::AUVRobotPtr& robot, YAML::Node config){
+void Main::AUVRobotSetup(){
 	base::StateSpacePtr StSpace(robot->getSimpleSetup().getStateSpace());
 
 	// define start state
@@ -44,20 +44,35 @@ void AUVRobotSetup(oauv::AUVRobotPtr& robot, YAML::Node config){
     printf ("FIN setup\n");
 }
 
-base::PlannerPtr myESTConfiguredPlanner(oauv::AUVRobotPtr& robot, double range){
+base::PlannerPtr myESTConfiguredPlanner(ompl::auvplanning::AUVRobotPtr robot, double range){
     control::EST *est = new control::EST(robot->getSimpleSetup().getSpaceInformation());
+    std::string name = "EST" + std::to_string((int)range);
+    est->setName(name);
     est->setRange(range);
     est->setProjectionEvaluator("AUVProjection");
     return base::PlannerPtr(est);
 }
 
-base::PlannerPtr myKPIECE1ConfiguredPlanner(oauv::AUVRobotPtr& robot){
+base::PlannerPtr myKPIECE1ConfiguredPlanner(ompl::auvplanning::AUVRobotPtr robot){
     control::KPIECE1 *kpiece1 = new control::KPIECE1(robot->getSimpleSetup().getSpaceInformation());
     kpiece1->setProjectionEvaluator("AUVProjection");
     return base::PlannerPtr(kpiece1);
 }
 
-void AUVRobotDemo(oauv::AUVRobotPtr& robot, YAML::Node config){
+base::PlannerPtr myPDSTConfiguredPlanner(ompl::auvplanning::AUVRobotPtr robot){
+    control::PDST *pdst = new control::PDST(robot->getSimpleSetup().getSpaceInformation());
+    pdst->setProjectionEvaluator("AUVProjection");
+    return base::PlannerPtr(pdst);
+}
+
+/*
+double distanceByPropagation(const base::State initialState, const base::State goalState){
+	double result = 10000;
+	//if()
+	return result;
+}*/
+
+void Main::AUVRobotDemo(){
 
 	std::string planner_str = config["plan/planner"].as<std::string>();
 	std::string solutionFile_str = config["plan/solutionFile"].as<std::string>();
@@ -72,10 +87,13 @@ void AUVRobotDemo(oauv::AUVRobotPtr& robot, YAML::Node config){
 	}else if (planner_str.compare("RRT") == 0){
 		robot->getSimpleSetup().setPlanner(base::PlannerPtr(new control::RRT(robot->getSimpleSetup().getSpaceInformation())));		
 	}else if (planner_str.compare("EST") == 0){
-		base::PlannerPtr planner = myESTConfiguredPlanner(robot, config["plan/ESTrange"].as<double>());
+		base::PlannerPtr planner = myESTConfiguredPlanner(getRobot(),config["plan/ESTrange"].as<double>());
 		robot->getSimpleSetup().setPlanner(planner);
 	}else if (planner_str.compare("KPIECE1") == 0){
-		base::PlannerPtr planner = myKPIECE1ConfiguredPlanner(robot);
+		base::PlannerPtr planner = myKPIECE1ConfiguredPlanner(getRobot());
+		robot->getSimpleSetup().setPlanner(planner);
+	}else if (planner_str.compare("PDST") == 0){
+		base::PlannerPtr planner = myPDSTConfiguredPlanner(getRobot());
 		robot->getSimpleSetup().setPlanner(planner);
 	}else if (planner_str.compare("SyclopRRT") == 0){
 		//robot->getSimpleSetup().setPlanner(base::PlannerPtr(new control::SyclopRRT(robot->getSimpleSetup().getSpaceInformation())));
@@ -107,10 +125,10 @@ void AUVRobotDemo(oauv::AUVRobotPtr& robot, YAML::Node config){
 		}else{
 			const base::PathPtr &p = robot->getSimpleSetup().getProblemDefinition()->getSolutionPath();
 			auvplanning::PathController& pathC(static_cast<auvplanning::PathController&>(*p));
-			pathC.printAsMatrix(std::cout);
-			std::cout << "PathController Impresión hecha" << std::endl;
-			//pathC.interpolate(); // uncomment if you want to plot the path
-			//std::cout << "PathController Interpolación hecha" << std::endl;
+			//pathC.printAsMatrix(std::cout);
+			//std::cout << "PathController Impresión hecha" << std::endl;
+			pathC.interpolate(); // uncomment if you want to plot the path
+			std::cout << "PathController Interpolación hecha" << std::endl;
 			//pathC.printAsMatrix(std::cout);
 			pathC.printAsMatrix(benchmarkFile);
 			std::cout << "PathController Impresión hecha" << std::endl;
@@ -135,7 +153,46 @@ void AUVRobotDemo(oauv::AUVRobotPtr& robot, YAML::Node config){
   	
 }
 
-void AUVRobotBenchmark(oauv::AUVRobotPtr& robot, YAML::Node config){
+// Assume these functions are defined
+void optionalPreRunEvent(const base::PlannerPtr &planner)
+{
+    // do whatever configuration we want to the planner,
+    // including changing of problem definition (input states)
+    // via planner->getProblemDefinition()
+}
+void optionalPostRunEvent(const base::PlannerPtr &planner, tools::Benchmark::RunProperties &run)
+{
+	YAML::Node config = Main::getConfig();
+	int run_iterator = Main::getRunCounter();
+
+	std::string folder_str = "./paths_" + config["benchmark/solutionFile"].as<std::string>();
+	chdir(folder_str.c_str());
+
+    std::string solutionFile_str = config["benchmark/solutionFile"].as<std::string>() + "_" + std::to_string(run_iterator) + ".txt";
+	std::string solutionQuatFile_str = config["benchmark/solutionQuatFile"].as<std::string>() + "_" + std::to_string(run_iterator) + ".txt";
+	std::string solutionControlsFile_str = config["benchmark/solutionControlsFile"].as<std::string>() + "_" + std::to_string(run_iterator) + ".txt";
+
+	std::fstream benchmarkFile;
+  	benchmarkFile.open (solutionFile_str, std::fstream::in | std::fstream::out | std::fstream::trunc);
+    
+    const base::PathPtr &p = planner->getProblemDefinition()->getSolutionPath();
+    if(p){
+    	control::PathControl& path(static_cast<control::PathControl&>(*p));
+		//path.printAsMatrix(std::cout);
+		path.interpolate(); // uncomment if you want to plot the path
+		//OMPL_INFORM("Solucion " + solutionFile_str.c_str() + " guardada");
+		path.printAsMatrix(benchmarkFile);
+	    Main::printSolutionToFile(benchmarkFile, solutionQuatFile_str, solutionControlsFile_str, false);
+	    benchmarkFile.close();
+	    chdir("..");
+	}
+    Main::addRun();
+}
+
+void Main::AUVRobotBenchmark(){
+
+	std::string folder_str = "./paths_" + config["benchmark/solutionFile"].as<std::string>();
+	mkdir(folder_str.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
 
 	double runtime = config["benchmark/runtime"].as<double>();
 	double runmemory = config["benchmark/runmemory"].as<double>();
@@ -149,14 +206,23 @@ void AUVRobotBenchmark(oauv::AUVRobotPtr& robot, YAML::Node config){
 
     tools::Benchmark b(robot->getSimpleSetup(), config["benchmark/testname"].as<std::string>());
     //b.addExperimentParameter("save_paths", "INTEGER", "10")
-    
+    b.addExperimentParameter("num_dofs", "INTEGER", "8");
+    b.addExperimentParameter("distance_to_goal_to_be_considered_achieved", "REAL", config["general/distanceToGoal"].as<std::string>());
+    b.addExperimentParameter("propagation_step_size", "INTEGER", config["general/propStepSize"].as<std::string>());
+    b.addExperimentParameter("minimum_control_duration", "INTEGER", config["general/minControlDuration"].as<std::string>());
+    b.addExperimentParameter("maximum_control_duration", "REAL", config["general/maxControlDuration"].as<std::string>());
+    b.addExperimentParameter("collision_checking_resolution", "REAL", config["general/checkresolution"].as<std::string>());
+	b.addExperimentParameter("nombre_del_archivo_del_entorno", "STRING", config["general/env_file"].as<std::string>());
+	b.addExperimentParameter("nombre_del_archivo_del_robot", "STRING", config["general/robot_file"].as<std::string>());
 
     //std::vector<std::string> planners_v= config["benchmark/planners"];
     for(int it = 0; it < config["benchmark/planners"].size();it++) {
 
 	   std::string value = config["benchmark/planners"][it].as<std::string>();
 
-	   if (value.compare("RRT") == 0)
+	   if (value.compare("DynamicRRT") == 0){
+			b.addPlanner(base::PlannerPtr(new auvplanning::DynamicRRT(robot->getSimpleSetup().getSpaceInformation())));		
+	   }if (value.compare("RRT") == 0)
 	   {
 	   		b.addPlanner(base::PlannerPtr(new control::RRT(robot->getSimpleSetup().getSpaceInformation())));
 	   		printf("Planificador RRT añadido al benchmark\n");
@@ -164,16 +230,17 @@ void AUVRobotBenchmark(oauv::AUVRobotPtr& robot, YAML::Node config){
 	   {
 	   		for(int it_est = 0; it_est < config["benchmark/ESTrange"].size();it_est++) {
 	   			double value_est = config["benchmark/ESTrange"][it_est].as<double>();
-	   			b.addPlannerAllocator(std::bind(&myESTConfiguredPlanner, robot ,value_est));
+	   			b.addPlannerAllocator(std::bind(&myESTConfiguredPlanner, getRobot(), value_est));
 	   			printf("Planificador EST añadido al benchmark, range = %f\n",value_est);
+	   			b.addExperimentParameter("EST range " + it_est, "INTEGER", config["benchmark/ESTrange"][it_est].as<std::string>());
 	   		}
 	   }else if (value.compare("KPIECE1") == 0)
 	   {
-			b.addPlannerAllocator(std::bind(&myKPIECE1ConfiguredPlanner, robot));	   		
+			b.addPlannerAllocator(std::bind(&myKPIECE1ConfiguredPlanner, getRobot()));	   		
 	   		printf("Planificador KPIECE1 añadido al benchmark\n");
 	   }else if (value.compare("PDST") == 0)
-	   {
-	   		b.addPlanner(base::PlannerPtr(new control::PDST(robot->getSimpleSetup().getSpaceInformation())));
+	   {	   	
+			b.addPlannerAllocator(std::bind(&myPDSTConfiguredPlanner, getRobot()));	   		
 	   		printf("Planificador PDST añadido al benchmark\n");
 	   }else if (value.compare("SyclopRRT") == 0)
 	   {
@@ -187,11 +254,18 @@ void AUVRobotBenchmark(oauv::AUVRobotPtr& robot, YAML::Node config){
 	   
 	}
 
+
+	// After the Benchmark class is defined, the events can be optionally registered:
+	//b.setPreRunEvent(std::bind(&optionalPreRunEvent, std::placeholders::_1));
+	b.setPostRunEvent(std::bind(&optionalPostRunEvent, std::placeholders::_1, std::placeholders::_2));
+
     b.benchmark(request);
+    chdir(folder_str.c_str());
     b.saveResultsToFile(config["benchmark/resultsFile"].as<std::string>().c_str());
+    chdir("..");
 }
 
-void moveAUV(oauv::AUVRobotPtr& robot, YAML::Node config){
+void Main::moveAUV(){
 
 	robot->setup(getTypeControlSampler(config["plan/controlSampler"].as<std::string>()));
 	double t1 = config["dynamics/th1"].as<double>();
@@ -298,7 +372,7 @@ void moveAUV(oauv::AUVRobotPtr& robot, YAML::Node config){
 	printf("[moveAUV] End of sampleTo\n");*/
 }
 
-void controlAUV(oauv::AUVRobotPtr& robot, YAML::Node config){
+void Main::controlAUV(){
 
 	robot->setup(getTypeControlSampler(config["plan/controlSampler"].as<std::string>()));
 	printf("[controlAUV] Init\n");
@@ -362,7 +436,7 @@ void controlAUV(oauv::AUVRobotPtr& robot, YAML::Node config){
 	robot->getSimpleSetup().getSpaceInformation()->freeState(reference);
 }
 
-void checkState(oauv::AUVRobotPtr& robot, YAML::Node config){
+void Main::checkState(){
 	robot->setup(getTypeControlSampler(config["plan/controlSampler"].as<std::string>()));
 	printf("[checkState] Init\n");
 
@@ -381,7 +455,7 @@ void checkState(oauv::AUVRobotPtr& robot, YAML::Node config){
 	isValid? printf("Es válido\n"): printf("No es válido\n");;
 }
 
-int getTypeControlSampler(std::string string_value){
+int Main::getTypeControlSampler(std::string string_value){
 	int value = -1;
     value = (string_value.compare("Random") == 0)? AUV_SIMPLE_DCS : -1;
     value = (string_value.compare("SemiRandom") == 0)? AUV_SEMI_RANDOM_DCS : -1;
@@ -392,7 +466,7 @@ int getTypeControlSampler(std::string string_value){
     return value;	
 }
 
-void printSolutionToFile(std::fstream &solutionFile, std::string quatFile_str, std::string controlsFile_str, bool modeController){
+void Main::printSolutionToFile(std::fstream &solutionFile, std::string quatFile_str, std::string controlsFile_str, bool modeController){
 	std::ofstream quatFile;
 	std::ofstream controlsFile;
 
@@ -510,6 +584,12 @@ void printSolutionToFile(std::fstream &solutionFile, std::string quatFile_str, s
   	controlsFile.close();
 }
 
+Main::Main(YAML::Node configuration):
+robot(new oauv::AUVRobot(false,configuration))/*, config(configuration)*/{
+	/*robot = new oauv::AUVRobotPtr robot(new oauv::AUVRobot(false,configuration));*/
+	config = configuration;
+}
+
 int main(int argc, char** argv){
 	if (argc < 2){
 		printf("Por favor, introduzca una de las opciones para ejecutar el programa.\n");
@@ -530,36 +610,37 @@ int main(int argc, char** argv){
 
 		YAML::Node config = YAML::LoadFile(argv[2]);
 
-		std::string env_fname 	=   config["general/env_file"].as<std::string>();
-		std::string robot_fname = 	config["general/robot_file"].as<std::string>();
+		std::string env_fname 	= config["general/env_file"].as<std::string>();
+		std::string robot_fname = config["general/robot_file"].as<std::string>();
 
-		oauv::AUVRobotPtr robot(new oauv::AUVRobot(false,config));
+		//oauv::AUVRobotPtr robot(new oauv::AUVRobot(false,config));
+		Main test(config);
 
 		if(strcmp(argv[1],"-d") == 0){
-			AUVRobotSetup(robot,config);
-			moveAUV(robot, config);	
+			test.AUVRobotSetup();
+			test.moveAUV();	
 
 		}else if(strcmp(argv[1],"-c") == 0){
-			AUVRobotSetup(robot,config);
-			controlAUV(robot, config);	
+			test.AUVRobotSetup();
+			test.controlAUV();	
 
 		}else if(strcmp(argv[1],"-p") == 0){
-		    robot->getRigidBodyGeometry().setEnvironmentMesh(env_fname.c_str());
-			robot->getRigidBodyGeometry().setRobotMesh(robot_fname.c_str());
-			AUVRobotSetup(robot,config);
-			AUVRobotDemo(robot,config);
+		    test.getRobot()->getRigidBodyGeometry().setEnvironmentMesh(env_fname.c_str());
+			test.getRobot()->getRigidBodyGeometry().setRobotMesh(robot_fname.c_str());
+			test.AUVRobotSetup();
+			test.AUVRobotDemo();
 
 		}else if(strcmp(argv[1],"-b") == 0){
-		    robot->getRigidBodyGeometry().setEnvironmentMesh(env_fname.c_str());
-			robot->getRigidBodyGeometry().setRobotMesh(robot_fname.c_str());
-			AUVRobotSetup(robot,config);
-			AUVRobotBenchmark(robot,config);
+		    test.getRobot()->getRigidBodyGeometry().setEnvironmentMesh(env_fname.c_str());
+			test.getRobot()->getRigidBodyGeometry().setRobotMesh(robot_fname.c_str());
+			test.AUVRobotSetup();
+			test.AUVRobotBenchmark();
 
 		}else if(strcmp(argv[1],"-v") == 0){
-		    robot->getRigidBodyGeometry().setEnvironmentMesh(env_fname.c_str());
-			robot->getRigidBodyGeometry().setRobotMesh(robot_fname.c_str());
-			AUVRobotSetup(robot,config);
-			checkState(robot,config);
+		    test.getRobot()->getRigidBodyGeometry().setEnvironmentMesh(env_fname.c_str());
+			test.getRobot()->getRigidBodyGeometry().setRobotMesh(robot_fname.c_str());
+			test.AUVRobotSetup();
+			test.checkState();
 
 		}else{
 			printf("Opción desconocida.\n");

@@ -1,0 +1,46 @@
+general/propStepSize: 0.05
+general/minControlDuration: 20
+general/maxControlDuration: 100
+general/checkresolution: 0.1
+general/distanceToGoal: 1.5
+
+#general/start: [-20, 10, -5, 0, 0, 0, 0, 0] #paredgruesa_lateral
+#general/start: [-20, 20, -5, 0, 0, 0, 0, 0] #paredgruesa_lateral_con_agujeros
+general/start: [-20, 20, -5, 0, 0, 0, 0, 0] #pareddoble_gruesa_lateral_con_agujeros
+#general/goal:  [-20, -20, -15, 0, 0, 0, 0, 0] #paredgruesa_lateral
+#general/goal:  [0, 0, -5, 0, 0, 0, 0, 0] #paredgruesa_lateral_con_agujeros
+general/goal:  [20, -20, -5, 0, 0, 0, 0, 0] #pareddoble_gruesa_lateral_con_agujeros
+#general/env_file: "/home/guillermo/workspace_auv/resources/EntornosParaTests/paredgruesa_lateral.dae" 
+#general/env_file: "/home/guillermo/workspace_auv/resources/EntornosParaTests/paredgruesa_lateral_con_agujeros.dae"
+general/env_file: "/home/guillermo/workspace_auv/resources/EntornosParaTests/pareddoble_gruesa_lateral_con_agujeros.dae"
+general/robot_file: "/home/guillermo/workspace_auv/resources/EntornosParaTests/cilindro_submarino.dae"
+
+dynamics/time: 20
+dynamics/th1: 0.6
+dynamics/th2: 1.0
+dynamics/th3: 1.0
+
+plan/time: 150
+plan/solutionFile: "plannerDebugEST.txt"
+plan/solutionQuatFile: "plannerWithQuatDebugEST.txt"
+plan/solutionControlsFile: "plannerControlsEST.txt"
+plan/planner: "EST"
+plan/controlSampler: "Random" #Random, SemiRandom || DynamicRRT -> 2StepsPID, PID
+plan/ESTrange: 10
+
+benchmark/testname: "EST_5000_10000 Random Test 20 runs pareddoble_gruesa_lateral_con_agujeros cilindro_submarino"
+#benchmark/testname: "EST200 EST500 EST1000 EST5000 EST10000 test 7 runs paredgruesa_lateral_cilindro_submarino Projection: AUVProjection"
+benchmark/resultsFile: "EST_5000_10000_Random_Test_20_runs_pareddoble_gruesa_lateral_con_agujeros_cilindro_submarino.log"
+#benchmark/resultsFile: "benchmarkEST200_EST500_EST1000_EST5000_EST10000test7runs_paredgruesa_lateral_cilindro_submarino.log"
+benchmark/runtime: 250
+benchmark/runmemory: 10000
+benchmark/runcount: 20
+benchmark/planners: ["EST"]
+benchmark/controlSampler: "Random" #Random, SemiRandom || DynamicRRT -> 2StepsPID, PID
+benchmark/ESTrange: [5000, 10000] #[10, 50, 75, 100, 250, 500, 750, 1000]
+#benchmark/ESTrange: [200, 500, 1000, 5000, 10000] #[10, 50, 75, 100, 250, 500, 750, 1000]
+benchmark/displayProgress: true
+benchmark/useThreads: true
+benchmark/solutionFile: "benchmark20EST_Random_5000_10000_pareddoble_gruesa_lateral_con_agujeros"
+benchmark/solutionQuatFile: "benchmarkWithQuat20EST_Random_5000_10000_pareddoble_gruesa_lateral_con_agujeros"
+benchmark/solutionControlsFile: "benchmarkControls20EST_Random_5000_10000_pareddoble_gruesa_lateral_con_agujeros"

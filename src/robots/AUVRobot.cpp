@@ -23,7 +23,7 @@ ompl::auvplanning::AUVRobot::AUVRobot(bool compound, YAML::Node config) :
 
 void ompl::auvplanning::AUVRobot::setup(int type)
 {
-    OMPL_INFORM("AUVRobot Setup");
+    OMPL_DEBUG("AUVRobot Setup");
 
 
     if(ss_.getControlSpace()->isCompound()){
@@ -69,19 +69,19 @@ void ompl::auvplanning::AUVRobot::setup(int type)
     validitySvc_ = rbg_.allocStateValidityChecker(sinf_,  getGeometricStateExtractor(), false);
 
     if (ss_.getStateValidityChecker() != validitySvc_){
-        printf("AUVRobot::setup ss_.getStateValidityChecker() es distinto de validitySvc_\n");
+        OMPL_DEBUG("AUVRobot::setup ss_.getStateValidityChecker() es distinto de validitySvc_");
         ss_.setStateValidityChecker(validitySvc_);
     }
 
     ss_.getStateSpace()->setup();
 
     if (!ss_.getStateSpace()->hasDefaultProjection()){
-        OMPL_INFORM("GeometricStateProjector a realizar");
+        OMPL_DEBUG("GeometricStateProjector a realizar");
         ss_.getStateSpace()->
             registerDefaultProjection(auvplanning::allocGeometricStateProjector(ss_.getStateSpace(),
                                                                    getGeometricComponentStateSpace(),
                                                                    getGeometricStateExtractor()));
-        OMPL_INFORM("GeometricStateProjector realizado");
+        OMPL_DEBUG("GeometricStateProjector realizado");
     }
 
     ss_.setup();

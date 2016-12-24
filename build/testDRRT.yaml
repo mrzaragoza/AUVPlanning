@@ -1,10 +1,10 @@
-general/propStepSize: 0.01
-general/minControlDuration: 200
-general/maxControlDuration: 1000
+general/propStepSize: 0.5
+general/minControlDuration: 20
+general/maxControlDuration: 100
 general/checkresolution: 0.1
 general/distanceToGoal: 1.5
 
-general/start: [-20, 10, -5, 0, 0, 0, 0, 0]
+general/start: [20, 25, -5, 0, 0, 0, 0, 0]
 #general/start: [0, 10, 0, 0, 0, 0, 0, 0]
 general/goal:  [-20, -20, -15, 0, 0, 0, 0, 0]
 #general/goal:  [0, 0, 0, 0, 0, 0, 0, 0]
@@ -18,24 +18,24 @@ dynamics/th1: 0.6
 dynamics/th2: 1.0
 dynamics/th3: 1.0
 
-plan/time: 150
-plan/solutionFile: "benchmarkDebugDynamicRRT2.txt"
-plan/solutionQuatFile: "benchmarkWithQuatDebugDynamicRRT2.txt"
-plan/solutionControlsFile: "benchmarkControlsDynamicRRT2.txt"
+plan/time: 15
+plan/solutionFile: "benchmarkDebugDynamicRRT3.txt"
+plan/solutionQuatFile: "benchmarkWithQuatDebugDynamicRRT3.txt"
+plan/solutionControlsFile: "benchmarkControlsDynamicRRT3.txt"
 plan/planner: "DynamicRRT"
 plan/controlSampler: "2StepsPID" #Random, SemiRandom || DynamicRRT -> 2StepsPID, PID
 plan/ESTrange: 10
 
-benchmark/testname: "REKPTest con PID Sampler"
-benchmark/resultsFile: "benchmarkREKPConPIDSampler.log"
-benchmark/runtime: 15
+benchmark/testname: "DynamicRRT test 30 runs paredgruesa_lateral_cilindro_submarino"
+benchmark/resultsFile: "benchmarkDynamicRRTtest30runs_paredgruesa_lateral_cilindro_submarino.log"
+benchmark/runtime: 1500
 benchmark/runmemory: 10000
-benchmark/runcount: 1
-benchmark/planners: ["RRT","EST","PDST"]
-benchmark/controlSampler: "Random" #Random, SemiRandom || DynamicRRT -> 2StepsPID, PID
-benchmark/ESTrange: [20] #[10, 50, 75, 100, 250, 500, 750, 1000]
+benchmark/runcount: 30
+benchmark/planners: ["DynamicRRT"]
+benchmark/controlSampler: "2StepsPID" #Random, SemiRandom || DynamicRRT -> 2StepsPID, PID
+benchmark/ESTrange: [200, 500, 1000, 5000, 10000] #[10, 50, 75, 100, 250, 500, 750, 1000]
 benchmark/displayProgress: true
 benchmark/useThreads: true
-
-
-
+benchmark/solutionFile: "benchmarkDebugRRT"
+benchmark/solutionQuatFile: "benchmarkWithQuatDebugRRT"
+benchmark/solutionControlsFile: "benchmarkControlsRRT"

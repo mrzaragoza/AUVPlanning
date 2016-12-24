@@ -6,14 +6,20 @@ namespace ob = ompl::base;
 namespace oc = ompl::control;
 namespace oauv = ompl::auvplanning;
 
-ompl::controller::Controller::Controller(const control::SpaceInformation *si) :
-sinf(si),
+ompl::controller::Controller::Controller(const control::SpaceInformation *si) :/*
+sinf(si),*/
 dynamics_(new oauv::AUVDynamics()),
-ode_(new ompl::control::ODEBasicSolver<>(sinf, boost::bind(&oauv::AUVDynamics::ode, dynamics_, _1, _2, _3)))
+ode_(new ompl::control::ODEBasicSolver<>(control::SpaceInformationPtr(si), boost::bind(&oauv::AUVDynamics::ode, dynamics_, _1, _2, _3)))
 {
+    si_ = si;
+    //dynamics_ = new oauv::AUVDynamics();
+    //ode_ = auvplanning::AUVDynamicsPtr(new ompl::control::ODEBasicSolver<>(control::SpaceInformationPtr(si_), boost::bind(&oauv::AUVDynamics::ode, dynamics_, _1, _2, _3)));
     stepSize = si->getPropagationStepSize();
     stPropagator = oc::ODESolver::getStatePropagator(ode_, boost::bind(&oauv::AUVDynamics::postPropagate, dynamics_, _1, _2, _3, _4));
+}
 
+ompl::controller::Controller::~Controller(){
+    //delete(si_);
 }
 
 unsigned int ompl::controller::Controller::propagateController(const base::State *source, base::State *dest, unsigned int steps)
@@ -32,8 +38,8 @@ void ompl::controller::Controller::propagateController(const base::State *source
     {
         result.resize(steps);
         for (unsigned int i = 0 ; i < result.size() ; ++i){
-            result[i] = sinf->allocState();
-            sinf->copyState(result[i], dest);
+            result[i] = si_->allocState();
+            si_->copyState(result[i], dest);
         }
     }
     else

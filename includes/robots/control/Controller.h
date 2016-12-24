@@ -24,7 +24,7 @@ namespace ompl
         public:
             Controller(const control::SpaceInformation *si);
 
-            ~Controller(){}           
+            ~Controller();          
 
             virtual unsigned int propagateController(const base::State *source, base::State *dest, unsigned int steps);
             virtual void propagateController(const base::State *source, const base::State *dest, std::vector<base::State*> &result, unsigned int steps, bool alloc);
@@ -35,11 +35,12 @@ namespace ompl
             virtual unsigned int propagation(const base::State *source, base::State *dest, unsigned int steps, bool checkValidity) = 0;
             virtual double pid(double reference, double value, double dt, double Kp, double Kd, double Ki, double *pre_error, double *integral, bool isYaw) = 0;
 
-            control::SpaceInformationPtr    sinf;
-            auvplanning::AUVDynamicsPtr     dynamics_;
-            control::ODESolverPtr           ode_;
-            double                          stepSize;
-            control::StatePropagatorPtr     stPropagator;
+            //control::SpaceInformationPtr          sinf;
+            const control::SpaceInformation         *si_;
+            auvplanning::AUVDynamicsPtr             dynamics_;
+            control::ODESolverPtr                   ode_;
+            double                                  stepSize;
+            control::StatePropagatorPtr             stPropagator;
 
         };
 
