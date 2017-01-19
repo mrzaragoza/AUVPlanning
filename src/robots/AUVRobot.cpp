@@ -6,13 +6,13 @@ namespace ob = ompl::base;
 namespace oc = ompl::control;
 namespace oauv = ompl::auvplanning;
 
-ompl::auvplanning::AUVRobot::AUVRobot(bool compound, YAML::Node config) :
-    sinf_(new oc::SpaceInformation(constructStateSpace(),constructControlSpace(compound))),
+ompl::auvplanning::AUVRobot::AUVRobot(YAML::Node config, int typeOfStateSpace) :
+    sinf_(new oc::SpaceInformation(constructStateSpace(typeOfStateSpace),constructControlSpace(typeOfStateSpace))),
     ss_(sinf_),
     rbg_(),
-    validitySvc_(new oauv::FCLStateValidityChecker(sinf_, rbg_.getGeometrySpecification(), getGeometricStateExtractor(), false)),
+    /*validitySvc_(new oauv::FCLStateValidityChecker(sinf_, rbg_.getGeometrySpecification(), getGeometricStateExtractor(), false)),*/
     dynamics_(new oauv::AUVDynamics()),
-    odeSolver_(new oauv::ODEAUVSolver<>(sinf_, boost::bind(&oauv::AUVDynamics::ode, dynamics_, _1, _2, _3))),
+    odeSolver_(new oauv::ODEBasicSolver<>(sinf_, boost::bind(&oauv::AUVDynamics::ode, dynamics_, _1, _2, _3))),
     geometricStateSpace(new ob::RealVectorStateSpace(3)),
     config_(config)
 {
@@ -23,17 +23,10 @@ ompl::auvplanning::AUVRobot::AUVRobot(bool compound, YAML::Node config) :
 
 void ompl::auvplanning::AUVRobot::setup(int type)
 {
-    OMPL_DEBUG("AUVRobot Setup");
+    OMPL_DEBUG("Robot Setup");
 
-
-    if(ss_.getControlSpace()->isCompound()){
-        setDefaultCompoundControlBounds();        
-    }else{
-        setDefaultControlBounds();
-    }
-
+    setDefaultControlBounds();
     oauv::InferEnvironmentBounds(getGeometricComponentStateSpace(), rbg_);
-
 
     if (ss_.getProblemDefinition()->getStartStateCount() == 0)
     {
@@ -69,19 +62,18 @@ void ompl::auvplanning::AUVRobot::setup(int type)
     validitySvc_ = rbg_.allocStateValidityChecker(sinf_,  getGeometricStateExtractor(), false);
 
     if (ss_.getStateValidityChecker() != validitySvc_){
-        OMPL_DEBUG("AUVRobot::setup ss_.getStateValidityChecker() es distinto de validitySvc_");
+        //OMPL_DEBUG("AUVRobot::setup ss_.getStateValidityChecker() es distinto de validitySvc_. \n\tSe hace un set para cambiarlo");
         ss_.setStateValidityChecker(validitySvc_);
     }
 
     ss_.getStateSpace()->setup();
 
     if (!ss_.getStateSpace()->hasDefaultProjection()){
-        OMPL_DEBUG("GeometricStateProjector a realizar");
-        ss_.getStateSpace()->
-            registerDefaultProjection(auvplanning::allocGeometricStateProjector(ss_.getStateSpace(),
+        //OMPL_DEBUG("GeometricStateProjector a realizar");
+        ss_.getStateSpace()->registerDefaultProjection(auvplanning::allocGeometricStateProjector(ss_.getStateSpace(),
                                                                    getGeometricComponentStateSpace(),
                                                                    getGeometricStateExtractor()));
-        OMPL_DEBUG("GeometricStateProjector realizado");
+        //OMPL_DEBUG("GeometricStateProjector realizado");
     }
 
     ss_.setup();
@@ -123,28 +115,10 @@ void ompl::auvplanning::AUVRobot::setDefaultControlBounds(void)
     ss_.getControlSpace()->as<oc::RealVectorControlSpace>()->setBounds(cbounds);
 }
 
-//Las acciones de control en los trhusters van de -1 a 1. 
-//Siendo 1 el par de fuerza máximo del thruster en el sentido de avance, y -1 el máximo en el contrario.
-void ompl::auvplanning::AUVRobot::setDefaultCompoundControlBounds(void)
-{
-    ob::RealVectorBounds cbounds(4);
-    cbounds.setLow(-1.);
-    cbounds.setHigh(1.);
-    cbounds.setLow(3,-std::numeric_limits<double>::infinity());
-    cbounds.setHigh(3,std::numeric_limits<double>::infinity());
-    ss_.getControlSpace()->as<control::CompoundControlSpace>()->getSubspace(0)->as<oc::RealVectorControlSpace>()->setBounds(cbounds);
-    ss_.getControlSpace()->as<control::CompoundControlSpace>()->getSubspace(1)->as<oc::RealVectorControlSpace>()->setBounds(cbounds);
-}
-
 ompl::control::DirectedControlSamplerPtr ompl::auvplanning::AUVRobot::AUVSemiRandomDirectedControlSamplerAllocator(const ompl::control::SpaceInformation *si, unsigned int k, YAML::Node config)
 {
     return ompl::control::DirectedControlSamplerPtr(new oauv::AUVSemiRandomDirectedControlSampler(si, k, config));
 }
-/* //Control Sampler para la opción de tener un espacio de controles compuesto, pero se ha descartado esa idea.
-ompl::control::DirectedControlSamplerPtr ompl::auvplanning::AUVRobot::AUVDirectedControlSamplerAllocator(const ompl::control::SpaceInformation *si, unsigned int k, YAML::Node config)
-{
-    return ompl::control::DirectedControlSamplerPtr(new oauv::AUVDirectedControlSampler(si, k, config));
-}*/
 
 ompl::control::DirectedControlSamplerPtr ompl::auvplanning::AUVRobot::AUV2StepPIDControlSamplerAllocator(const ompl::control::SpaceInformation *si, YAML::Node config)
 {
@@ -171,10 +145,7 @@ void ompl::auvplanning::AUVRobot::setDirectedControlSampler(int type){
             break;
         case AUV_SEMI_RANDOM_DCS:
             dcsa = boost::bind(AUVSemiRandomDirectedControlSamplerAllocator, sinf_.get(), 15, config_);
-            break;/*
-        case AUV_DIRECTED_DCS:
-            dcsa = boost::bind(AUVDirectedControlSamplerAllocator, sinf_.get(), 15, config_);
-            break;*/
+            break;
         case AUV_PID_DCS:
             dcsa = boost::bind(AUVPIDControlSamplerAllocator, sinf_.get(), 15, config_);
             break;
@@ -188,11 +159,3 @@ void ompl::auvplanning::AUVRobot::setDirectedControlSampler(int type){
     sinf_.get()->setDirectedControlSamplerAllocator(dcsa);
 
 }
-/*
-ompl::control::SpaceInformationPtr ompl::auvplanning::AUVRobot::AUVSpaceInformationAllocator(bool compound){
-
-    if(compound){
-        return ompl::control::SpaceInformationPtr(new oauv::SpaceInformation(constructStateSpace(),constructControlSpace(compound)));
-    }
-    return ompl::control::SpaceInformationPtr(new oc::SpaceInformation(constructStateSpace(),constructControlSpace(compound)));
-}*/

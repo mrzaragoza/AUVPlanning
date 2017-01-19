@@ -21,7 +21,7 @@
 #include "ompl/control/ControlSpace.h"
 #include "ompl/control/SpaceInformation.h"
 
-#include "planners/AUVGoal.h"
+#include "planners/AUVGoalState.h"
 
 #include <robots/AUVRobot.h>
 #include <colisionador/appUtil.h>
@@ -53,11 +53,13 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <ctime>
+
 class Main
 {
     public:
 
-    	Main(YAML::Node configuration);
+    	Main(int typeOfStateSpace, YAML::Node configuration);
     	~Main(){}
     	void AUVRobotSetup();
 		void AUVRobotDemo();
@@ -66,13 +68,15 @@ class Main
         void controlAUV();
         void checkState();
 
-        ompl::auvplanning::AUVRobotPtr getRobot(){ return robot;}
+        static ompl::auvplanning::AUVRobotPtr getRobot(){ return robot;}
         static int getRunCounter(){ return runCounter;}
         static YAML::Node getConfig(){ return config;}
         static void addRun(){ runCounter++;}
         static void printSolutionToFile(std::fstream &solutionFile, std::string quatFile_str, std::string controlsFile_str, bool modeController);
+
         static int runCounter;
         static YAML::Node config;
+        static ompl::auvplanning::AUVRobotPtr robot;
 
     private:
         /*void optionalPreRunEvent(const base::PlannerPtr &planner);
@@ -83,7 +87,6 @@ class Main
         /*base::PlannerPtr myKPIECE1ConfiguredPlanner(int a);
         base::PlannerPtr myESTConfiguredPlanner(double range);*/
 
-        ompl::auvplanning::AUVRobotPtr robot;
         /*int runCounter = 0;
         YAML::Node config;*/
 };

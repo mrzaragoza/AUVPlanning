@@ -10,9 +10,10 @@
 #include "colisionador/RigidBodyGeometry.h"
 #include "colisionador/GeometrySpecification.h"
 #include <colisionador/appUtil.h>
-#include "robots/dynamics/ODEAUVSolver.h"
+//#include "robots/dynamics/ODEAUVSolver.h"
 
 #include <ompl/base/spaces/RealVectorStateSpace.h>
+#include "benchmarks/RealVectorStateSpaceSimplePropagateDistance.h"
 
 #include <ompl/control/SimpleSetup.h>
 #include <ompl/control/ODESolver.h>
@@ -21,21 +22,19 @@
 #include "ompl/control/DirectedControlSampler.h"
 #include "ompl/control/SimpleDirectedControlSampler.h"
 #include "planners/PlanificadorLocal/AUVSemiRandomDirectedControlSampler.h"
-#include "planners/PlanificadorLocal/AUVDirectedControlSampler.h"
 #include "planners/PlanificadorLocal/AUVPIDControlSampler.h"
 #include "planners/PlanificadorLocal/AUV2StepPIDControlSampler.h"
 
 using namespace std;
 using namespace ompl;
 
-#define AUV_SIMPLE_DCS        0
-#define AUV_SEMI_RANDOM_DCS   1
-#define AUV_2PID_DCS          2
-#define AUV_PID_DCS           3
-//#define AUV_DIRECTED_DCS      4
+#define AUV_SIMPLE_DCS                0
+#define AUV_SEMI_RANDOM_DCS           1
+#define AUV_2PID_DCS                  2
+#define AUV_PID_DCS                   3
 
-#define NORMAL_DISTANCE       0
-#define PROPAGATE_DISTANCE    1
+#define EUCLIDEAN_DISTANCE            0
+#define SIMPLE_PROPAGATE_DISTANCE     1
 
 namespace ompl
 {
@@ -45,14 +44,13 @@ namespace ompl
 
     class AUVRobot{
     public:
-     AUVRobot(bool compound, YAML::Node config);
+     AUVRobot(YAML::Node config, int typeOfStateSpace);
      ~AUVRobot(){}
 
      void setup(int type);
 
      base::ScopedState<> getDefaultStartState(void) const;
      void setDefaultControlBounds();
-     void setDefaultCompoundControlBounds();
 
      base::ScopedState<> getFullStateFromGeometricComponent(const base::ScopedState<> &state) const;
 
@@ -76,7 +74,6 @@ namespace ompl
     auvplanning::RigidBodyGeometry&  getRigidBodyGeometry(){   return rbg_;          }            
     base::StateValidityCheckerPtr&  getStateValidityChecker(){ return validitySvc_;  }
     void setDirectedControlSampler(int type);
-    //void setDistanceFunction(int type);
 
     int getCollisionCounter(){
       return static_cast<FCLStateValidityChecker*>(validitySvc_.get())->getCallCounter();
@@ -88,11 +85,8 @@ namespace ompl
 
 
   protected:
-
-    //double propagateDistanceFunction(const base::State *state1, const base::State *state2) const ;
     static ompl::control::DirectedControlSamplerPtr AUV2StepPIDControlSamplerAllocator(const ompl::control::SpaceInformation *si, YAML::Node config);
     static ompl::control::DirectedControlSamplerPtr AUVPIDControlSamplerAllocator(const ompl::control::SpaceInformation *si, unsigned int k, YAML::Node config);
-    //static ompl::control::DirectedControlSamplerPtr AUVDirectedControlSamplerAllocator(const ompl::control::SpaceInformation *si, unsigned int k, YAML::Node config);
     static ompl::control::DirectedControlSamplerPtr AUVSemiRandomDirectedControlSamplerAllocator(const ompl::control::SpaceInformation *si, unsigned int k, YAML::Node config);
     static ompl::control::DirectedControlSamplerPtr RandomDirectedControlSamplerAllocator(const ompl::control::SpaceInformation *si, unsigned int k);
 
@@ -106,20 +100,19 @@ namespace ompl
       return state_;
     }
 
-    static control::ControlSpacePtr constructControlSpace(bool compound)
+    static control::ControlSpacePtr constructControlSpace(int typeOfStateSpace)
     {
-      if(compound){
-        control::ControlSpacePtr controlspace(new control::CompoundControlSpace(constructStateSpace()));
-        controlspace->as<control::CompoundControlSpace>()->addSubspace(control::ControlSpacePtr(new control::RealVectorControlSpace(constructStateSpace(), 4)));
-        controlspace->as<control::CompoundControlSpace>()->addSubspace(control::ControlSpacePtr(new control::RealVectorControlSpace(constructStateSpace(), 4)));
-        return controlspace;
-      }
-
-      return control::ControlSpacePtr(new control::RealVectorControlSpace(constructStateSpace(), 3));
+      return control::ControlSpacePtr(new control::RealVectorControlSpace(constructStateSpace(typeOfStateSpace), 3));
     }
 
-    static base::StateSpacePtr constructStateSpace(void)
+    static base::StateSpacePtr constructStateSpace(int typeOfStateSpace)
     {
+      if(typeOfStateSpace == SIMPLE_PROPAGATE_DISTANCE){
+        OMPL_DEBUG("Simple propagatation distance function");
+        return base::StateSpacePtr(new base::RealVectorStateSpaceSimplePropagateDistance(8));
+      }
+
+      OMPL_DEBUG("Euclidean distance function");
       return base::StateSpacePtr(new base::RealVectorStateSpace(8));
     }
 
@@ -140,8 +133,6 @@ namespace ompl
     control::ODESolverPtr                   odeSolver_;
 
     base::StateSpacePtr                     geometricStateSpace;
-
-    control::DirectedControlSamplerPtr      dControlSampler_;
 
     YAML::Node                              config_;
   };

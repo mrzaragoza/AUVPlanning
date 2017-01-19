@@ -19,7 +19,7 @@ ompl::controller::AUVPID::AUVPID(const control::SpaceInformation *si) : Controll
     Kdyaw = robot_config["torpedo/Kyaw"][1].as<double>();
     Kiyaw = robot_config["torpedo/Kyaw"][2].as<double>();    
 
-    mass = robot_config["torpedo/mass"].as<double>();
+    /*mass = robot_config["torpedo/mass"].as<double>();
     c_rbm1 = robot_config["torpedo/rbMassCoefficients"][0].as<double>();
     c_rbm3 = robot_config["torpedo/rbMassCoefficients"][2].as<double>();
     c_rbm4 = robot_config["torpedo/rbMassCoefficients"][3].as<double>();
@@ -31,7 +31,7 @@ ompl::controller::AUVPID::AUVPID(const control::SpaceInformation *si) : Controll
     c_ld4 = robot_config["torpedo/dampingCoefficients"][3].as<double>();
     c_qd1 = robot_config["torpedo/quadraticDampingCoefficients"][0].as<double>();
     c_qd3 = robot_config["torpedo/quadraticDampingCoefficients"][2].as<double>();
-    c_qd4 = robot_config["torpedo/quadraticDampingCoefficients"][3].as<double>();
+    c_qd4 = robot_config["torpedo/quadraticDampingCoefficients"][3].as<double>();*/
     controlZEstable = robot_config["torpedo/controlZEstable"].as<double>();
     l_motores = robot_config["torpedo/lengths"][2].as<double>();
     max_fuerza_motores = robot_config["torpedo/max_fuerza_motores"].as<double>();

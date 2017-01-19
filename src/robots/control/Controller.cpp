@@ -6,20 +6,14 @@ namespace ob = ompl::base;
 namespace oc = ompl::control;
 namespace oauv = ompl::auvplanning;
 
-ompl::controller::Controller::Controller(const control::SpaceInformation *si) :/*
-sinf(si),*/
-dynamics_(new oauv::AUVDynamics()),
-ode_(new ompl::control::ODEBasicSolver<>(control::SpaceInformationPtr(si), boost::bind(&oauv::AUVDynamics::ode, dynamics_, _1, _2, _3)))
+ompl::controller::Controller::Controller(const control::SpaceInformation *si)
 {
     si_ = si;
-    //dynamics_ = new oauv::AUVDynamics();
-    //ode_ = auvplanning::AUVDynamicsPtr(new ompl::control::ODEBasicSolver<>(control::SpaceInformationPtr(si_), boost::bind(&oauv::AUVDynamics::ode, dynamics_, _1, _2, _3)));
     stepSize = si->getPropagationStepSize();
-    stPropagator = oc::ODESolver::getStatePropagator(ode_, boost::bind(&oauv::AUVDynamics::postPropagate, dynamics_, _1, _2, _3, _4));
+    stPropagator = si->getStatePropagator();
 }
 
 ompl::controller::Controller::~Controller(){
-    //delete(si_);
 }
 
 unsigned int ompl::controller::Controller::propagateController(const base::State *source, base::State *dest, unsigned int steps)
@@ -34,6 +28,7 @@ unsigned int ompl::controller::Controller::propagateWhileValidController(const b
 
 void ompl::controller::Controller::propagateController(const base::State *source, const base::State *dest, std::vector<base::State*> &result, unsigned int steps, bool alloc)
 {
+    //printf("\tController numero de steps de entrada: %d\n", steps);
     if (alloc)
     {
         result.resize(steps);
@@ -50,15 +45,18 @@ void ompl::controller::Controller::propagateController(const base::State *source
     }
 
     int st = 0;
+    int step = 1;
 
     if (st < steps)
     {
-        propagation(source, result[st], stepSize, false);
+        //propagation(source, result[st], stepSize, false);
+        propagation(source, result[st], step, false);
         ++st;
 
         while (st < steps)
         {
-            propagation(result[st-1], result[st], stepSize, false);
+            //propagation(result[st-1], result[st], stepSize, false);
+            propagation(result[st-1], result[st], step, false);
             ++st;
         }
     }

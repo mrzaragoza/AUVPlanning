@@ -1,0 +1,43 @@
+general/propagationStepSize: 0.05
+general/minControlDuration: 20
+general/maxControlDuration: 1000
+general/checkResolution: 0.1
+general/distanceToGoal: 1.5
+
+general/controlSampler: "Random" # Random, SemiRandom || DynamicRRT -> 2StepsPID
+general/distanceFunction: "Euclidean" # "Euclidean", "Propagated"
+
+general/start: [0,   5, -14, -3.14159, 0, 0, 0, 0] 
+general/goal:  [0, -10, -18, 0, 0, 0, 0, 0] 
+general/env_file: "/home/guillermo/workspace_auv/resources/EntornosParaTests/5_test_U.dae" 
+general/robot_file: "/home/guillermo/workspace_auv/resources/EntornosParaTests/cilindro_submarino.dae"
+
+general/planners: ["RRT", "EST", "PDST", "KPIECE1"] # "RRT", "EST", "PDST", "KPIECE1", "DynammicRRT"
+EST/Range: [200] # [10, 50, 75, 100, 250, 500, 750, 1000]
+KPIECE1/numPlanners: 2
+KPIECE1/borderFraction: [0.7, 0.9] # De 0 a 1
+KPIECE1/CellScoreFactor: [0.8, 0.5, 0.9, 0.3] # [0..1, 0..1] [good, bad]
+KPIECE1/MaxCloseSampleCount: [10, 20] # Integer
+
+plan/time: 150
+plan/solutionFile: "plannerDebugRRT_5_test_U.txt"
+plan/solutionQuatFile: "plannerWithQuatDebugRRT_5_test_U.txt"
+plan/solutionControlsFile: "plannerControlsRRT_5_test_U.txt"
+
+benchmark/testname: "REPK Random Test 10 runs 5_test_U EuclideanDistance"
+benchmark/pathFolder: "REPK_Random_Test_10_runs_5_test_U_EuclideanDistance"
+benchmark/logFile: "REPK_Random_Test_10_runs_5_test_U_EuclideanDistance.log"
+benchmark/runtime: 100
+benchmark/runmemory: 10000
+benchmark/runcount: 10
+benchmark/displayProgress: true
+benchmark/useThreads: true
+
+dynamics/time: 4
+dynamics/th1: 0
+dynamics/th2: 0
+dynamics/th3: 0
+
+control/start: [-20, 10, -5, 0, 0, 0, 0, 0]
+control/reference:  [17.39895, 0.974125, -5.48273, -1.68379, 1.33622, -1.0671, 1.33187, -0.321306]
+control/duration: 100000

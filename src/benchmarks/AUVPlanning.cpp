@@ -3,105 +3,146 @@
 using namespace ompl;
 namespace oauv = ompl::auvplanning;
 
-int Main::runCounter = 0;
-YAML::Node Main::config;
+int 								Main::runCounter = 0;
+YAML::Node 							Main::config;
+ompl::auvplanning::AUVRobotPtr 		Main::robot;
 
-void Main::AUVRobotSetup(){
+std::string getStringTime()
+{
+  time_t rawtime;
+  struct tm * timeinfo;
+  char buffer[80];
+
+  std::time(&rawtime);
+  timeinfo = localtime(&rawtime);
+
+  strftime(buffer,80,"%Y_%m_%d_%H:%M:%S",timeinfo);
+  std::string str(buffer);
+
+  return str;
+}
+
+void Main::AUVRobotSetup()
+{
 	base::StateSpacePtr StSpace(robot->getSimpleSetup().getStateSpace());
 
 	// define start state
-	base::ScopedState<base::RealVectorStateSpace> start(robot->getGeometricComponentStateSpace());
+	base::ScopedState<base::RealVectorStateSpace> start(StSpace);
 	start[0] = config["general/start"][0].as<double>();
 	start[1] = config["general/start"][1].as<double>();
 	start[2] = config["general/start"][2].as<double>();	
+	start[3] = config["general/start"][3].as<double>();	
+	start[4] = config["general/start"][4].as<double>();	
+	start[5] = config["general/start"][5].as<double>();	
+	start[6] = config["general/start"][6].as<double>();	
+	start[7] = config["general/start"][7].as<double>();	
 
 	// define goal state
-    base::ScopedState<base::RealVectorStateSpace> goal(robot->getGeometricComponentStateSpace());
-    goal[0] = config["general/goal"][0].as<double>();
-    goal[1] = config["general/goal"][1].as<double>();
-    goal[2] = config["general/goal"][2].as<double>();
+	base::ScopedState<base::RealVectorStateSpace> goalState(StSpace);
+    goalState[0] = config["general/goal"][0].as<double>();
+    goalState[1] = config["general/goal"][1].as<double>();
+    goalState[2] = config["general/goal"][2].as<double>();
+    goalState[3] = config["general/goal"][3].as<double>();
+    goalState[4] = config["general/goal"][4].as<double>();
+    goalState[5] = config["general/goal"][5].as<double>();
+    goalState[6] = config["general/goal"][6].as<double>();
+    goalState[7] = config["general/goal"][7].as<double>();
 
-    robot->getSimpleSetup().setStartAndGoalStates(
-    	robot->getFullStateFromGeometricComponent(start),
-    	robot->getFullStateFromGeometricComponent(goal), config["general/distanceToGoal"].as<double>());
+    base::GoalPtr goal(new oauv::AUVGoalState(robot->getSimpleSetup().getSpaceInformation()));
+    static_cast<base::GoalState*>(goal.get())->setState(goalState);
+    static_cast<base::GoalState*>(goal.get())->setThreshold(config["general/distanceToGoal"].as<double>());
 
-    robot->getSimpleSetup().getSpaceInformation().get()->setPropagationStepSize(config["general/propStepSize"].as<double>());
+    robot->getSimpleSetup().addStartState(start);
+    robot->getSimpleSetup().setGoal(goal);
+    double gTh = static_cast<base::GoalState*>(robot->getSimpleSetup().getGoal().get())->getThreshold();
+    OMPL_INFORM("Threshold: %f", gTh);
+
+    robot->getSimpleSetup().getSpaceInformation().get()->setPropagationStepSize(config["general/propagationStepSize"].as<double>());
+    double stpSize = robot->getSimpleSetup().getSpaceInformation().get()->getPropagationStepSize();
+    OMPL_INFORM("Propagation Step size: %f", stpSize);
     robot->getSimpleSetup().getSpaceInformation().get()->setMinMaxControlDuration(config["general/minControlDuration"].as<double>(),config["general/maxControlDuration"].as<double>());
+  
+    robot->getSimpleSetup().getSpaceInformation()->setStateValidityCheckingResolution(config["general/checkResolution"].as<double>());
 
-    //Siempre después de los sets del step size y el min/max control duration, para que la dinamica que usa el muestreador de control, sea con esos parámetros.
-	/*control::DirectedControlSamplerAllocator pla = boost::bind(auvplanning::PlanificadorLocal::PlanificadorLocalAllocator, robot->getSimpleSetup().getSpaceInformation().get(), 15, config);
-    robot->getSimpleSetup().getSpaceInformation().get()->setDirectedControlSamplerAllocator(pla);*/
-    
+    robot->getSimpleSetup().getStateSpace()->registerProjection("AUVProjection", auvplanning::allocGeometricStateProjector(robot->getSimpleSetup().getStateSpace(), robot->getGeometricComponentStateSpace(),
+    								robot->getGeometricStateExtractor()));
 
-    //control::DirectedControlSamplerAllocator pla = boost::bind(auvplanning::AUVDirectedControlSampler::AUVDirectedControlSamplerAllocator, robot->getSimpleSetup().getSpaceInformation().get(), 15, config);
-    //robot->getSimpleSetup().getSpaceInformation().get()->setDirectedControlSamplerAllocator(pla);
-
-    robot->getSimpleSetup().getSpaceInformation()->setStateValidityCheckingResolution(config["general/checkresolution"].as<double>());
-
-    robot->getSimpleSetup().getStateSpace()->registerProjection("AUVProjection",auvplanning::allocGeometricStateProjector(robot->getSimpleSetup().getStateSpace(),
-     										robot->getGeometricComponentStateSpace(), robot->getGeometricStateExtractor()));
-
-    printf ("FIN setup\n");
 }
 
-base::PlannerPtr myESTConfiguredPlanner(ompl::auvplanning::AUVRobotPtr robot, double range){
+base::PlannerPtr myESTConfiguredPlanner(ompl::auvplanning::AUVRobotPtr robot, double range)
+{
     control::EST *est = new control::EST(robot->getSimpleSetup().getSpaceInformation());
-    std::string name = "EST" + std::to_string((int)range);
+    std::string name = "EST_" + std::to_string((int)range);
     est->setName(name);
     est->setRange(range);
     est->setProjectionEvaluator("AUVProjection");
     return base::PlannerPtr(est);
 }
 
-base::PlannerPtr myKPIECE1ConfiguredPlanner(ompl::auvplanning::AUVRobotPtr robot){
+base::PlannerPtr myKPIECE1ConfiguredPlanner(ompl::auvplanning::AUVRobotPtr robot, double borderFraction, double goodCellScoreFactor, double badCellScoreFactor, double maxCloseSampleCount)
+{
     control::KPIECE1 *kpiece1 = new control::KPIECE1(robot->getSimpleSetup().getSpaceInformation());
+
+	stringstream stream;
+	stream << fixed << setprecision(2) << borderFraction << "_" << goodCellScoreFactor << "_" << badCellScoreFactor;
+	string name_str = stream.str();
+    std::string name = "KPIECE1_" + name_str + "_" + std::to_string((int)maxCloseSampleCount);
+    kpiece1->setName(name);
+
     kpiece1->setProjectionEvaluator("AUVProjection");
+    kpiece1->setBorderFraction(borderFraction);
+    kpiece1->setCellScoreFactor(goodCellScoreFactor, badCellScoreFactor);
+    kpiece1->setMaxCloseSamplesCount((int)maxCloseSampleCount);
     return base::PlannerPtr(kpiece1);
 }
 
-base::PlannerPtr myPDSTConfiguredPlanner(ompl::auvplanning::AUVRobotPtr robot){
+base::PlannerPtr myPDSTConfiguredPlanner(ompl::auvplanning::AUVRobotPtr robot)
+{
     control::PDST *pdst = new control::PDST(robot->getSimpleSetup().getSpaceInformation());
     pdst->setProjectionEvaluator("AUVProjection");
     return base::PlannerPtr(pdst);
 }
 
-/*
-double distanceByPropagation(const base::State initialState, const base::State goalState){
-	double result = 10000;
-	//if()
-	return result;
-}*/
-
-void Main::AUVRobotDemo(){
-
-	std::string planner_str = config["plan/planner"].as<std::string>();
+void Main::AUVRobotDemo()
+{
+	std::string planner_str = config["general/planners"][0].as<std::string>();
 	std::string solutionFile_str = config["plan/solutionFile"].as<std::string>();
 	std::string solutionQuatFile_str = config["plan/solutionQuatFile"].as<std::string>();
 	std::string solutionControlsFile_str = config["plan/solutionControlsFile"].as<std::string>();
 
 	bool hasController = false;
 
-	if (planner_str.compare("DynamicRRT") == 0){
+	if (planner_str.compare("DynamicRRT") == 0)
+	{
 		robot->getSimpleSetup().setPlanner(base::PlannerPtr(new auvplanning::DynamicRRT(robot->getSimpleSetup().getSpaceInformation())));
 		hasController = true;		
-	}else if (planner_str.compare("RRT") == 0){
+	}else if (planner_str.compare("RRT") == 0)
+	{
 		robot->getSimpleSetup().setPlanner(base::PlannerPtr(new control::RRT(robot->getSimpleSetup().getSpaceInformation())));		
-	}else if (planner_str.compare("EST") == 0){
-		base::PlannerPtr planner = myESTConfiguredPlanner(getRobot(),config["plan/ESTrange"].as<double>());
+	}else if (planner_str.compare("EST") == 0)
+	{
+		base::PlannerPtr planner = myESTConfiguredPlanner(getRobot(),config["EST/Range"][0].as<double>());
 		robot->getSimpleSetup().setPlanner(planner);
-	}else if (planner_str.compare("KPIECE1") == 0){
-		base::PlannerPtr planner = myKPIECE1ConfiguredPlanner(getRobot());
+	}else if (planner_str.compare("KPIECE1") == 0)
+	{
+		double bf = config["KPIECE1/borderFraction"][0].as<double>();
+		double goodCSF = config["KPIECE1/CellScoreFactor"][0].as<double>();
+		double badCSF = config["KPIECE1/CellScoreFactor"][1].as<double>();
+		int    mcsc= config["KPIECE1/MaxCloseSampleCount"][0].as<double>();
+		base::PlannerPtr planner = myKPIECE1ConfiguredPlanner(getRobot(), bf, goodCSF, badCSF, mcsc);
 		robot->getSimpleSetup().setPlanner(planner);
-	}else if (planner_str.compare("PDST") == 0){
+	}else if (planner_str.compare("PDST") == 0)
+	{
 		base::PlannerPtr planner = myPDSTConfiguredPlanner(getRobot());
 		robot->getSimpleSetup().setPlanner(planner);
-	}else if (planner_str.compare("SyclopRRT") == 0){
+	}else if (planner_str.compare("SyclopRRT") == 0)
+	{
 		//robot->getSimpleSetup().setPlanner(base::PlannerPtr(new control::SyclopRRT(robot->getSimpleSetup().getSpaceInformation())));
 	}else if (planner_str.compare("") == 0){
 		
 	}
 
-	robot->setup(getTypeControlSampler(config["plan/controlSampler"].as<std::string>()));
+	robot->setup(getTypeControlSampler(config["general/controlSampler"].as<std::string>()));
 
 	robot->getSimpleSetup().getPlanner()->printProperties(std::cout);
 	robot->getSimpleSetup().getPlanner()->printSettings(std::cout);
@@ -122,12 +163,16 @@ void Main::AUVRobotDemo(){
 			path.printAsMatrix(benchmarkFile);
 			//benchmarkFile.close();
     		printSolutionToFile(benchmarkFile, solutionQuatFile_str, solutionControlsFile_str, false);
-		}else{
+		}else
+		{
 			const base::PathPtr &p = robot->getSimpleSetup().getProblemDefinition()->getSolutionPath();
 			auvplanning::PathController& pathC(static_cast<auvplanning::PathController&>(*p));
-			//pathC.printAsMatrix(std::cout);
-			//std::cout << "PathController Impresión hecha" << std::endl;
+			pathC.printAsMatrix(std::cout);
+			std::cout << "PathController Impresión hecha" << std::endl;
+			/*double prevStepSize = robot->getSimpleSetup().getSpaceInformation()->getPropagationStepSize();
+			robot->getSimpleSetup().getSpaceInformation()->setPropagationStepSize(0.01);*/
 			pathC.interpolate(); // uncomment if you want to plot the path
+			//robot->getSimpleSetup().getSpaceInformation()->setPropagationStepSize(prevStepSize);
 			std::cout << "PathController Interpolación hecha" << std::endl;
 			//pathC.printAsMatrix(std::cout);
 			pathC.printAsMatrix(benchmarkFile);
@@ -141,12 +186,18 @@ void Main::AUVRobotDemo(){
 		{
 			std::cout << "Solution is approximate. Distance to actual goal is " <<
 					robot->getSimpleSetup().getProblemDefinition()->getSolutionDifference() << std::endl;
-		}else{
+		}else
+		{
 			std::cout << "Solution is in the range. Distance to actual goal is " <<
 					robot->getSimpleSetup().getProblemDefinition()->getSolutionDifference() << std::endl;
 		}
 	}
 
+	int numeroLlamadasColisionador = robot->getCollisionCounter();
+	OMPL_INFORM("Numero de llamadas al colisionador:  %d", numeroLlamadasColisionador);
+	robot->resetCollisionCounter();
+	int numeroLlamadasColisionador2 = robot->getCollisionCounter();
+	OMPL_INFORM("Numero de llamadas al colisionador despues de reset:  %d", numeroLlamadasColisionador2);
 	/*unsigned int llamadas_colisionador = robot->getStateValidityChecker().get()->FCLStateValidityChecker::getCallCounter();
 
 	printf("Llamadas al colisionador: %d\n", llamadas_colisionador);*/
@@ -165,33 +216,52 @@ void optionalPostRunEvent(const base::PlannerPtr &planner, tools::Benchmark::Run
 	YAML::Node config = Main::getConfig();
 	int run_iterator = Main::getRunCounter();
 
-	std::string folder_str = "./paths_" + config["benchmark/solutionFile"].as<std::string>();
-	chdir(folder_str.c_str());
+    int numeroLlamadasColisionador = Main::getRobot()->getCollisionCounter();
+    run["numero de llamadas al colisionador INTEGER"] = std::to_string(numeroLlamadasColisionador);
+	Main::getRobot()->resetCollisionCounter();
 
-    std::string solutionFile_str = config["benchmark/solutionFile"].as<std::string>() + "_" + std::to_string(run_iterator) + ".txt";
+    std::string fecha = getStringTime();
+    std::string nombre_planificador = planner->getName();
+    std::string solutionFile_str = fecha + "_" + nombre_planificador + "_" + std::to_string(run_iterator) + "_EulerPath.txt";
+	std::string solutionQuatFile_str = fecha + "_" + nombre_planificador + "_" + std::to_string(run_iterator) + "_QuatPath.txt";
+	std::string solutionControlsFile_str = fecha + "_" + nombre_planificador + "_" + std::to_string(run_iterator) + "_Controls.txt";
+
+	std::string folder_str = "./paths_" + config["benchmark/pathFolder"].as<std::string>();
+	int res1 = chdir(folder_str.c_str());
+	
+    /*std::string solutionFile_str = config["benchmark/solutionFile"].as<std::string>() + "_" + std::to_string(run_iterator) + ".txt";
 	std::string solutionQuatFile_str = config["benchmark/solutionQuatFile"].as<std::string>() + "_" + std::to_string(run_iterator) + ".txt";
-	std::string solutionControlsFile_str = config["benchmark/solutionControlsFile"].as<std::string>() + "_" + std::to_string(run_iterator) + ".txt";
+	std::string solutionControlsFile_str = config["benchmark/solutionControlsFile"].as<std::string>() + "_" + std::to_string(run_iterator) + ".txt";*/
 
 	std::fstream benchmarkFile;
   	benchmarkFile.open (solutionFile_str, std::fstream::in | std::fstream::out | std::fstream::trunc);
     
     const base::PathPtr &p = planner->getProblemDefinition()->getSolutionPath();
-    if(p){
+    if(p && planner->getName().compare("DynamicRRT") != 0)
+    {    	
     	control::PathControl& path(static_cast<control::PathControl&>(*p));
-		//path.printAsMatrix(std::cout);
-		path.interpolate(); // uncomment if you want to plot the path
-		//OMPL_INFORM("Solucion " + solutionFile_str.c_str() + " guardada");
+		path.interpolate(); 
 		path.printAsMatrix(benchmarkFile);
 	    Main::printSolutionToFile(benchmarkFile, solutionQuatFile_str, solutionControlsFile_str, false);
-	    benchmarkFile.close();
-	    chdir("..");
 	}
+	else if(p && planner->getName().compare("DynamicRRT") == 0)
+	{			
+		auvplanning::PathController& pathC(static_cast<auvplanning::PathController&>(*p));
+		//pathC.printAsMatrix(std::cout);
+		pathC.interpolate();
+		pathC.printAsMatrix(benchmarkFile);
+		Main::printSolutionToFile(benchmarkFile, solutionQuatFile_str, solutionControlsFile_str, true);
+	}
+	benchmarkFile.close();
+	int res2 = chdir("..");
+
     Main::addRun();
 }
 
-void Main::AUVRobotBenchmark(){
+void Main::AUVRobotBenchmark()
+{
 
-	std::string folder_str = "./paths_" + config["benchmark/solutionFile"].as<std::string>();
+	std::string folder_str = "./paths_" + config["benchmark/pathFolder"].as<std::string>();
 	mkdir(folder_str.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
 
 	double runtime = config["benchmark/runtime"].as<double>();
@@ -202,46 +272,57 @@ void Main::AUVRobotBenchmark(){
 	request.displayProgress = config["benchmark/displayProgress"].as<bool>();
 	request.useThreads = config["benchmark/useThreads"].as<bool>();
 
-    robot->setup(getTypeControlSampler(config["benchmark/controlSampler"].as<std::string>()));
+    robot->setup(getTypeControlSampler(config["general/controlSampler"].as<std::string>()));
 
     tools::Benchmark b(robot->getSimpleSetup(), config["benchmark/testname"].as<std::string>());
     //b.addExperimentParameter("save_paths", "INTEGER", "10")
     b.addExperimentParameter("num_dofs", "INTEGER", "8");
     b.addExperimentParameter("distance_to_goal_to_be_considered_achieved", "REAL", config["general/distanceToGoal"].as<std::string>());
-    b.addExperimentParameter("propagation_step_size", "INTEGER", config["general/propStepSize"].as<std::string>());
+    b.addExperimentParameter("propagation_step_size", "INTEGER", config["general/propagationStepSize"].as<std::string>());
     b.addExperimentParameter("minimum_control_duration", "INTEGER", config["general/minControlDuration"].as<std::string>());
     b.addExperimentParameter("maximum_control_duration", "REAL", config["general/maxControlDuration"].as<std::string>());
-    b.addExperimentParameter("collision_checking_resolution", "REAL", config["general/checkresolution"].as<std::string>());
+    b.addExperimentParameter("collision_checking_resolution", "REAL", config["general/checkResolution"].as<std::string>());
 	b.addExperimentParameter("nombre_del_archivo_del_entorno", "STRING", config["general/env_file"].as<std::string>());
 	b.addExperimentParameter("nombre_del_archivo_del_robot", "STRING", config["general/robot_file"].as<std::string>());
 
-    //std::vector<std::string> planners_v= config["benchmark/planners"];
-    for(int it = 0; it < config["benchmark/planners"].size();it++) {
+    //std::vector<std::string> planners_v= config["general/planners"];
+    for(int it = 0; it < config["general/planners"].size();it++) 
+    {
+	   std::string value = config["general/planners"][it].as<std::string>();
 
-	   std::string value = config["benchmark/planners"][it].as<std::string>();
-
-	   if (value.compare("DynamicRRT") == 0){
-			b.addPlanner(base::PlannerPtr(new auvplanning::DynamicRRT(robot->getSimpleSetup().getSpaceInformation())));		
+	   if (value.compare("DynamicRRT") == 0)
+	   {
+			b.addPlanner(base::PlannerPtr(new auvplanning::DynamicRRT(robot->getSimpleSetup().getSpaceInformation())));	
+			OMPL_INFORM("Planificador DynamicRRT añadido al benchmark");	
 	   }if (value.compare("RRT") == 0)
 	   {
 	   		b.addPlanner(base::PlannerPtr(new control::RRT(robot->getSimpleSetup().getSpaceInformation())));
-	   		printf("Planificador RRT añadido al benchmark\n");
+	   		OMPL_INFORM("Planificador RRT añadido al benchmark");
 	   }else if (value.compare("EST") == 0)
 	   {
-	   		for(int it_est = 0; it_est < config["benchmark/ESTrange"].size();it_est++) {
-	   			double value_est = config["benchmark/ESTrange"][it_est].as<double>();
+	   		for(int it_est = 0; it_est < config["EST/Range"].size();it_est++) 
+	   		{
+	   			double value_est = config["EST/Range"][it_est].as<double>();
 	   			b.addPlannerAllocator(std::bind(&myESTConfiguredPlanner, getRobot(), value_est));
-	   			printf("Planificador EST añadido al benchmark, range = %f\n",value_est);
-	   			b.addExperimentParameter("EST range " + it_est, "INTEGER", config["benchmark/ESTrange"][it_est].as<std::string>());
+	   			b.addExperimentParameter("EST range " + it_est, "INTEGER", config["EST/Range"][it_est].as<std::string>());
+	   			OMPL_INFORM("Planificador EST añadido al benchmark, range = %f",value_est);
 	   		}
 	   }else if (value.compare("KPIECE1") == 0)
-	   {
-			b.addPlannerAllocator(std::bind(&myKPIECE1ConfiguredPlanner, getRobot()));	   		
-	   		printf("Planificador KPIECE1 añadido al benchmark\n");
+	   {	   	
+	   		
+	   		for(int it_kpiece1 = 0; it_kpiece1 < config["KPIECE1/numPlanners"].as<double>();it_kpiece1++) 
+	   		{
+				double bf = config["KPIECE1/borderFraction"][it_kpiece1].as<double>();
+				double goodCSF = config["KPIECE1/CellScoreFactor"][2*it_kpiece1].as<double>();
+				double badCSF = config["KPIECE1/CellScoreFactor"][2*it_kpiece1+1].as<double>();
+				int    mcsc = config["KPIECE1/MaxCloseSampleCount"][it_kpiece1].as<double>();
+		   		b.addPlannerAllocator(std::bind(&myKPIECE1ConfiguredPlanner, getRobot(), bf, goodCSF, badCSF, mcsc));
+		   		OMPL_INFORM("Planificador KPIECE1 añadido al benchmark");
+	   		}
 	   }else if (value.compare("PDST") == 0)
 	   {	   	
 			b.addPlannerAllocator(std::bind(&myPDSTConfiguredPlanner, getRobot()));	   		
-	   		printf("Planificador PDST añadido al benchmark\n");
+	   		OMPL_INFORM("Planificador PDST añadido al benchmark");
 	   }else if (value.compare("SyclopRRT") == 0)
 	   {
 			//b.addPlanner(base::PlannerPtr(new control::SyclopRRT(robot->getSimpleSetup().getSpaceInformation())));
@@ -260,14 +341,15 @@ void Main::AUVRobotBenchmark(){
 	b.setPostRunEvent(std::bind(&optionalPostRunEvent, std::placeholders::_1, std::placeholders::_2));
 
     b.benchmark(request);
-    chdir(folder_str.c_str());
-    b.saveResultsToFile(config["benchmark/resultsFile"].as<std::string>().c_str());
-    chdir("..");
+    int res1 = chdir(folder_str.c_str());
+    b.saveResultsToFile(config["benchmark/logFile"].as<std::string>().c_str());
+    int res2 = chdir("..");
 }
 
-void Main::moveAUV(){
+void Main::moveAUV()
+{
 
-	robot->setup(getTypeControlSampler(config["plan/controlSampler"].as<std::string>()));
+	robot->setup(getTypeControlSampler(config["general/controlSampler"].as<std::string>()));
 	double t1 = config["dynamics/th1"].as<double>();
 	double t2 = config["dynamics/th2"].as<double>();
 	double t3 = config["dynamics/th3"].as<double>();
@@ -299,35 +381,13 @@ void Main::moveAUV(){
 
 
     control::Control *control_ = robot->getSimpleSetup().getSpaceInformation()->allocControl();
-    if(!robot->getSimpleSetup().getSpaceInformation()->getControlSpace()->isCompound()){
 
-	    control_->as<control::RealVectorControlSpace::ControlType>()->values[0] = t1;
-	    control_->as<control::RealVectorControlSpace::ControlType>()->values[1] = t2;
-	    control_->as<control::RealVectorControlSpace::ControlType>()->values[2] = t3;
-		printf("control_ t1: %f\n", control_->as<control::RealVectorControlSpace::ControlType>()->values[0]);
-		printf("control_ t2: %f\n", control_->as<control::RealVectorControlSpace::ControlType>()->values[1]);
-		printf("control_ t3: %f\n", control_->as<control::RealVectorControlSpace::ControlType>()->values[2]);
-    }else{	    
-
-	    control_->as<control::CompoundControlSpace::ControlType>()->components[0]->as<control::RealVectorControlSpace::ControlType>()->values[0] = t1;
-	    control_->as<control::CompoundControlSpace::ControlType>()->components[0]->as<control::RealVectorControlSpace::ControlType>()->values[1] = t2;
-	    control_->as<control::CompoundControlSpace::ControlType>()->components[0]->as<control::RealVectorControlSpace::ControlType>()->values[2] = t3;
-	    control_->as<control::CompoundControlSpace::ControlType>()->components[0]->as<control::RealVectorControlSpace::ControlType>()->values[3] = tiempo;
-	    control_->as<control::CompoundControlSpace::ControlType>()->components[1]->as<control::RealVectorControlSpace::ControlType>()->values[0] = t1;
-	    control_->as<control::CompoundControlSpace::ControlType>()->components[1]->as<control::RealVectorControlSpace::ControlType>()->values[1] = t2;
-	    control_->as<control::CompoundControlSpace::ControlType>()->components[1]->as<control::RealVectorControlSpace::ControlType>()->values[2] = t3;
-	    control_->as<control::CompoundControlSpace::ControlType>()->components[1]->as<control::RealVectorControlSpace::ControlType>()->values[3] = tiempo;
-		/*printf("control_1 t1: 		%f\n", control_->getSubspace(0)->as<control::RealVectorControlSpace::ControlType>()->values[0]);
-		printf("control_1 t2: 		%f\n", control_->getSubspace(0)->as<control::RealVectorControlSpace::ControlType>()->values[1]);
-		printf("control_1 t3: 		%f\n", control_->getSubspace(0)->as<control::RealVectorControlSpace::ControlType>()->values[2]);
-		printf("control_1 tiempo: 	%f\n", control_->getSubspace(0)->as<control::RealVectorControlSpace::ControlType>()->values[3]);
-		printf("control_2 t1: 		%f\n", control_->getSubspace(1)->as<control::RealVectorControlSpace::ControlType>()->values[0]);
-		printf("control_2 t2: 		%f\n", control_->getSubspace(1)->as<control::RealVectorControlSpace::ControlType>()->values[1]);
-		printf("control_2 t3: 		%f\n", control_->getSubspace(1)->as<control::RealVectorControlSpace::ControlType>()->values[2]);
-		printf("control_2 tiempo: 	%f\n", control_->getSubspace(1)->as<control::RealVectorControlSpace::ControlType>()->values[3]);*/
-    }
-
-    
+    control_->as<control::RealVectorControlSpace::ControlType>()->values[0] = t1;
+    control_->as<control::RealVectorControlSpace::ControlType>()->values[1] = t2;
+    control_->as<control::RealVectorControlSpace::ControlType>()->values[2] = t3;
+	printf("control_ t1: %f\n", control_->as<control::RealVectorControlSpace::ControlType>()->values[0]);
+	printf("control_ t2: %f\n", control_->as<control::RealVectorControlSpace::ControlType>()->values[1]);
+	printf("control_ t3: %f\n", control_->as<control::RealVectorControlSpace::ControlType>()->values[2]);    
 
     base::State *result = robot->getSimpleSetup().getSpaceInformation()->allocState();
 
@@ -374,70 +434,81 @@ void Main::moveAUV(){
 
 void Main::controlAUV(){
 
-	robot->setup(getTypeControlSampler(config["plan/controlSampler"].as<std::string>()));
+	robot->setup(getTypeControlSampler(config["general/controlSampler"].as<std::string>()));
 	printf("[controlAUV] Init\n");
 
 	base::State *state; 
 	state = robot->getSimpleSetup().getSpaceInformation()->allocState();
-	state->as<base::RealVectorStateSpace::StateType>()->values[0] = 600.0;
-	state->as<base::RealVectorStateSpace::StateType>()->values[1] = 120.0;
-	state->as<base::RealVectorStateSpace::StateType>()->values[2] = 100.0;
-	state->as<base::RealVectorStateSpace::StateType>()->values[3] = 0.0;
-	state->as<base::RealVectorStateSpace::StateType>()->values[4] = 0.0;
-	state->as<base::RealVectorStateSpace::StateType>()->values[5] = 0.0;
-	state->as<base::RealVectorStateSpace::StateType>()->values[6] = 0.0;
-	state->as<base::RealVectorStateSpace::StateType>()->values[7] = 0.0;
-	printf("state x: %f\n", state->as<base::RealVectorStateSpace::StateType>()->values[0]);
-	printf("state y: %f\n", state->as<base::RealVectorStateSpace::StateType>()->values[1]);
-	printf("state z: %f\n", state->as<base::RealVectorStateSpace::StateType>()->values[2]);
-	printf("state yaw: %f\n", state->as<base::RealVectorStateSpace::StateType>()->values[3]);
-	printf("state vx: %f\n", state->as<base::RealVectorStateSpace::StateType>()->values[4]);
-	printf("state vy: %f\n", state->as<base::RealVectorStateSpace::StateType>()->values[5]);
-	printf("state vz: %f\n", state->as<base::RealVectorStateSpace::StateType>()->values[6]);
-	printf("state vyaw: %f\n", state->as<base::RealVectorStateSpace::StateType>()->values[7]);
+	state->as<base::RealVectorStateSpace::StateType>()->values[0] = config["control/start"][0].as<double>();
+	state->as<base::RealVectorStateSpace::StateType>()->values[1] = config["control/start"][1].as<double>();
+	state->as<base::RealVectorStateSpace::StateType>()->values[2] = config["control/start"][2].as<double>();
+	state->as<base::RealVectorStateSpace::StateType>()->values[3] = config["control/start"][3].as<double>();
+	state->as<base::RealVectorStateSpace::StateType>()->values[4] = config["control/start"][4].as<double>();
+	state->as<base::RealVectorStateSpace::StateType>()->values[5] = config["control/start"][5].as<double>();
+	state->as<base::RealVectorStateSpace::StateType>()->values[6] = config["control/start"][6].as<double>();
+	state->as<base::RealVectorStateSpace::StateType>()->values[7] = config["control/start"][7].as<double>();
+	printf("Start state\n\t");
+	robot->getSimpleSetup().getSpaceInformation()->printState(state);
 
 	base::State *reference; 
 	reference = robot->getSimpleSetup().getSpaceInformation()->allocState();
-	reference->as<base::RealVectorStateSpace::StateType>()->values[0] = 550.0;
-	reference->as<base::RealVectorStateSpace::StateType>()->values[1] = 330.0;
-	reference->as<base::RealVectorStateSpace::StateType>()->values[2] = 100.0;
-	reference->as<base::RealVectorStateSpace::StateType>()->values[3] = 0.0;
-	reference->as<base::RealVectorStateSpace::StateType>()->values[4] = 0.0;
-	reference->as<base::RealVectorStateSpace::StateType>()->values[5] = 0.0;
-	reference->as<base::RealVectorStateSpace::StateType>()->values[6] = 0.0;
-	reference->as<base::RealVectorStateSpace::StateType>()->values[7] = 0.0;
-	printf("reference x: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[0]);
-	printf("reference y: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[1]);
-	printf("reference z: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[2]);
-	printf("reference yaw: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[3]);
-	printf("reference vx: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[4]);
-	printf("reference vy: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[5]);
-	printf("reference vz: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[6]);
-	printf("reference vyaw: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[7]);
+	reference->as<base::RealVectorStateSpace::StateType>()->values[0] = config["control/reference"][0].as<double>();
+	reference->as<base::RealVectorStateSpace::StateType>()->values[1] = config["control/reference"][1].as<double>();
+	reference->as<base::RealVectorStateSpace::StateType>()->values[2] = config["control/reference"][2].as<double>();
+	reference->as<base::RealVectorStateSpace::StateType>()->values[3] = config["control/reference"][3].as<double>();
+	reference->as<base::RealVectorStateSpace::StateType>()->values[4] = config["control/reference"][4].as<double>();
+	reference->as<base::RealVectorStateSpace::StateType>()->values[5] = config["control/reference"][5].as<double>();
+	reference->as<base::RealVectorStateSpace::StateType>()->values[6] = config["control/reference"][6].as<double>();
+	reference->as<base::RealVectorStateSpace::StateType>()->values[7] = config["control/reference"][7].as<double>();
+	printf("Reference\n\t");
+	robot->getSimpleSetup().getSpaceInformation()->printState(reference);
 
     controller::ControllerPtr controller(new controller::AUV2StepPID(robot->getSimpleSetup().getSpaceInformation().get()));
 
-    const unsigned int maxDuration = robot->getSimpleSetup().getSpaceInformation()->getMaxControlDuration();
+    //const unsigned int maxDuration = robot->getSimpleSetup().getSpaceInformation()->getMaxControlDuration();
 
+    double res = robot->getSimpleSetup().getSpaceInformation()->getPropagationStepSize();
+    const unsigned int duration = config["control/duration"].as<double>();
+	int steps = (int)floor(0.5 + duration / res);
+
+    printf("Duration: %d\n", duration);
 	printf("[controlAUV] Start of controller\n");
-    controller->propagateController(state, reference, maxDuration);
-	printf("result x: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[0]);
-	printf("result y: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[1]);
-	printf("result z: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[2]);
-	printf("result yaw: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[3]);
-	printf("result vx: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[4]);
-	printf("result vy: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[5]);
-	printf("result vz: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[6]);
-	printf("result vyaw: %f\n", reference->as<base::RealVectorStateSpace::StateType>()->values[7]);
+    int tiempoEjecutado = controller->propagateController(state, reference, steps);
+	printf("Result\n\t");
+	robot->getSimpleSetup().getSpaceInformation()->printState(reference);
+	printf("Tiempo ejecutado: %d\n", tiempoEjecutado);
 	printf("[controlAUV] End of controller\n");
 	printf("[controlAUV] -------------------\n");
+
+
+	reference->as<base::RealVectorStateSpace::StateType>()->values[0] = config["control/reference"][0].as<double>();
+	reference->as<base::RealVectorStateSpace::StateType>()->values[1] = config["control/reference"][1].as<double>();
+	reference->as<base::RealVectorStateSpace::StateType>()->values[2] = config["control/reference"][2].as<double>();
+	reference->as<base::RealVectorStateSpace::StateType>()->values[3] = config["control/reference"][3].as<double>();
+	reference->as<base::RealVectorStateSpace::StateType>()->values[4] = config["control/reference"][4].as<double>();
+	reference->as<base::RealVectorStateSpace::StateType>()->values[5] = config["control/reference"][5].as<double>();
+	reference->as<base::RealVectorStateSpace::StateType>()->values[6] = config["control/reference"][6].as<double>();
+	reference->as<base::RealVectorStateSpace::StateType>()->values[7] = config["control/reference"][7].as<double>();
+
+	printf("[controlAUV] Control Sampler\n");
+	ompl::control::DirectedControlSamplerPtr controlSampler_ = robot->getSimpleSetup().getSpaceInformation()->allocDirectedControlSampler();
+	control::Control		*rctrl = robot->getSimpleSetup().getSpaceInformation()->allocControl();
+	printf("Start state\n\t");
+	robot->getSimpleSetup().getSpaceInformation()->printState(state);
+	printf("Reference\n\t");
+	robot->getSimpleSetup().getSpaceInformation()->printState(reference);
+	int t = controlSampler_->sampleTo(rctrl, state, reference);
+    printf("Duration: %d\n", t);
+	printf("Result\n\t");
+	robot->getSimpleSetup().getSpaceInformation()->printState(reference);
 
 	robot->getSimpleSetup().getSpaceInformation()->freeState(state);
 	robot->getSimpleSetup().getSpaceInformation()->freeState(reference);
 }
 
-void Main::checkState(){
-	robot->setup(getTypeControlSampler(config["plan/controlSampler"].as<std::string>()));
+void Main::checkState()
+{
+	robot->setup(getTypeControlSampler(config["general/controlSampler"].as<std::string>()));
 	printf("[checkState] Init\n");
 
 	base::State *state; 
@@ -452,21 +523,22 @@ void Main::checkState(){
 	state->as<base::RealVectorStateSpace::StateType>()->values[7] = config["general/start"][7].as<double>();
 	robot->getSimpleSetup().getSpaceInformation()->printState(state);
 	bool isValid = robot->getStateValidityChecker()->isValid(state);
-	isValid? printf("Es válido\n"): printf("No es válido\n");;
+	isValid? printf("Is valid\n"): printf("Is not valid\n");;
 }
 
-int Main::getTypeControlSampler(std::string string_value){
+int Main::getTypeControlSampler(std::string string_value)
+{
 	int value = -1;
     value = (string_value.compare("Random") == 0)? AUV_SIMPLE_DCS : -1;
     value = (string_value.compare("SemiRandom") == 0)? AUV_SEMI_RANDOM_DCS : -1;
-    //value = (string_value.compare("AUV_DIRECTED_DCS") == 0)? AUV_DIRECTED_DCS : -1;
     value = (string_value.compare("PID") == 0)? AUV_PID_DCS : -1;
     value = (string_value.compare("2StepsPID") == 0)? AUV_2PID_DCS : -1;
 
     return value;	
 }
 
-void Main::printSolutionToFile(std::fstream &solutionFile, std::string quatFile_str, std::string controlsFile_str, bool modeController){
+void Main::printSolutionToFile(std::fstream &solutionFile, std::string quatFile_str, std::string controlsFile_str, bool modeController)
+{
 	std::ofstream quatFile;
 	std::ofstream controlsFile;
 
@@ -584,29 +656,35 @@ void Main::printSolutionToFile(std::fstream &solutionFile, std::string quatFile_
   	controlsFile.close();
 }
 
-Main::Main(YAML::Node configuration):
-robot(new oauv::AUVRobot(false,configuration))/*, config(configuration)*/{
-	/*robot = new oauv::AUVRobotPtr robot(new oauv::AUVRobot(false,configuration));*/
+Main::Main(int typeOfStateSpace, YAML::Node configuration)
+{
+	oauv::AUVRobotPtr auxiliar(new oauv::AUVRobot(configuration, typeOfStateSpace));
+	robot = auxiliar;
 	config = configuration;
 }
 
 int main(int argc, char** argv){
-	if (argc < 2){
-		printf("Por favor, introduzca una de las opciones para ejecutar el programa.\n");
-	}else if(argc < 3){
+	if (argc < 2)
+	{
+		printf("Please, select one available option. (-h for more information).\n");
+	}else if(argc < 3)
+	{
 
-		if(strcmp(argv[1],"-h") == 0){
-			printf("Opciones disponibles:\n");
-			printf("-d : \n");
-			printf("-c : \n");
-			printf("-p : \n");
-			printf("-b : \n");
-			printf("-v : \n");
-			printf("-h : \n");
-		}else{
-			printf("Por favor, introduzca el fichero de configuracion.\n");
+		if(strcmp(argv[1],"-h") == 0)
+		{
+			printf("Available options:\n");
+			printf("-b : benchmark planners for one problem\n");
+			printf("-p : plan a path from one state to another\n");
+			printf("-d : move auv (for dynamics check)\n");
+			printf("-c : control auv (for controller check)\n");
+			printf("-v : validate one state in the enviroment\n");
+			printf("-h : help\n");
+		}else
+		{
+			printf("Please, introduce the configuration file.\n");
 		}
-	}else{
+	}else
+	{
 
 		YAML::Node config = YAML::LoadFile(argv[2]);
 
@@ -614,7 +692,21 @@ int main(int argc, char** argv){
 		std::string robot_fname = config["general/robot_file"].as<std::string>();
 
 		//oauv::AUVRobotPtr robot(new oauv::AUVRobot(false,config));
-		Main test(config);
+		std::string distanceFunction = config["general/distanceFunction"].as<std::string>();
+		int distanceFunctionType = -1;
+		if(distanceFunction == "Euclidean")
+		{
+			distanceFunctionType = EUCLIDEAN_DISTANCE;
+		}else if(distanceFunction == "Propagated")
+		{
+			distanceFunctionType = SIMPLE_PROPAGATE_DISTANCE;
+		}else
+		{
+			printf("Please, select one of the available distance functions: euclidead or propagated.\n");
+			return -1;
+		}
+
+		Main test(distanceFunctionType,config);
 
 		if(strcmp(argv[1],"-d") == 0){
 			test.AUVRobotSetup();
@@ -643,7 +735,7 @@ int main(int argc, char** argv){
 			test.checkState();
 
 		}else{
-			printf("Opción desconocida.\n");
+			printf("Unknown option.\n");
 		}
 	}
 

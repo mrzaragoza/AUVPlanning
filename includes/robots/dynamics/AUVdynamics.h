@@ -42,6 +42,7 @@ namespace ompl
                 array<double,N_DIMENSIONS> rbMassCoefficients_; //Mrb = [m, m, m, Izz]
                 array<double,N_DIMENSIONS> addedMassCoefficients_; //Ma  = [X_udot, Y_vdot, Z_wdot, N_rdot]
 
+                double f_th;
                 double vol_fluid_displaced;
                 int long_fluid_displaced;
                 double f_espuma;

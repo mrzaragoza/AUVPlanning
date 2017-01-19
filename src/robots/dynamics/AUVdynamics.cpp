@@ -14,12 +14,14 @@ ompl::auvplanning::AUVDynamics::AUVDynamics()
         config["torpedo/lengths"][3].as<double>()};
 
     long_fluid_displaced = config["torpedo/long_fluid_displaced"].as<double>();
-    vol_fluid_displaced = M_PI * pow(lengths_[1],2) * long_fluid_displaced;
+    //vol_fluid_displaced = M_PI * pow(lengths_[1],2) * long_fluid_displaced;
+    vol_fluid_displaced = config["torpedo/vol_fluid_displaced"].as<double>();
     f_espuma = config["torpedo/f_espuma"].as<double>();
 
-    W = mass_ * GRAVITY;
-    B = (double) GRAVITY * (FLUID_DENSITY * vol_fluid_displaced + f_espuma);
-
+    W = mass_ /** GRAVITY*/;
+    //B = (double) GRAVITY * (FLUID_DENSITY * vol_fluid_displaced + f_espuma);
+    B = (double) /*GRAVITY **/ (vol_fluid_displaced + f_espuma);
+    //printf("W:%f  B:%f  W-B:%f\n",W, B, W-B );
     rbMassCoefficients_ = {config["torpedo/rbMassCoefficients"][0].as<double>(),
         config["torpedo/rbMassCoefficients"][1].as<double>(),
         config["torpedo/rbMassCoefficients"][2].as<double>(),
@@ -39,6 +41,8 @@ ompl::auvplanning::AUVDynamics::AUVDynamics()
         config["torpedo/quadraticDampingCoefficients"][1].as<double>(),
         config["torpedo/quadraticDampingCoefficients"][2].as<double>(),
         config["torpedo/quadraticDampingCoefficients"][3].as<double>()};
+
+    f_th = config["torpedo/max_fuerza_motores"].as<double>();
 }
 
 void ompl::auvplanning::AUVDynamics::ode(const control::ODESolver::StateType& q, const control::Control *ctrl, control::ODESolver::StateType& qdot)
@@ -50,12 +54,12 @@ void ompl::auvplanning::AUVDynamics::ode(const control::ODESolver::StateType& q,
     // zero out qdot
     qdot.resize (q.size (), 0);
 
-    //Se multiplica la acción de control por la fuerza que puede dar cada thruster. TODO:(poner en variable global)
+    //Se multiplica la acción de control por la fuerza que puede dar cada thruster.
     array<double,3> tau;
-    double f = 2.0;
-    tau[0] = tau_in[0] * f; 
-    tau[1] = tau_in[1] * f;
-    tau[2] = tau_in[2] * f;
+    //double f = 5.0;
+    tau[0] = tau_in[0] * f_th; 
+    tau[1] = tau_in[1] * f_th;
+    tau[2] = tau_in[2] * f_th;
     double velocities[] = {q[4], q[5], q[6], q[7]};
 
     // derivatives in position and orientation
@@ -76,9 +80,9 @@ void ompl::auvplanning::AUVDynamics::ode(const control::ODESolver::StateType& q,
                         / (rbMassCoefficients_[0] + addedMassCoefficients_[0]);
     double ac_sway  = ( 0 -    (dampingCoefficients_[1] + quadraticDampingCoefficients_[1] * fabs(velocities[1])) * velocities[1] ) 
                         / (rbMassCoefficients_[1] + addedMassCoefficients_[1]);
-    double ac_heave = ( tau[0] -                 (dampingCoefficients_[2] + quadraticDampingCoefficients_[2] * fabs(velocities[2])) * velocities[2] + (W - B) ) 
+    double ac_heave = ( tau[0] - (dampingCoefficients_[2] + quadraticDampingCoefficients_[2] * fabs(velocities[2])) * velocities[2] + (W - B) ) 
                         / (rbMassCoefficients_[2] + addedMassCoefficients_[2]);
-    double ac_yaw   = ( ( lengths_[2]*tau[1] - lengths_[3]*tau[2] ) -    (dampingCoefficients_[3] + quadraticDampingCoefficients_[3] * fabs(velocities[3])) * velocities[3]) 
+    double ac_yaw   = ( ( lengths_[2]*tau[1] - lengths_[3]*tau[2] ) - (dampingCoefficients_[3] + quadraticDampingCoefficients_[3] * fabs(velocities[3])) * velocities[3]) 
                         / (rbMassCoefficients_[3] + addedMassCoefficients_[3]);
     // derivatives of the velocity in the World frame
 

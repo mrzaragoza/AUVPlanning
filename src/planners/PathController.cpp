@@ -81,20 +81,20 @@ void ompl::auvplanning::PathController::print(std::ostream &out) const
 
 void ompl::auvplanning::PathController::printAsMatrix(std::ostream &out) const
 {
-    printf("Entra en ompl::auvplanning::PathController::printAsMatrix\n");
+    //printf("\tEntra en ompl::auvplanning::PathController::printAsMatrix\n");
     if (currentStates_.empty())
         return;
     const base::StateSpace* space(si_->getStateSpace().get());
     std::vector<double> reals, reals_ref;
 
-    int aa = si_->getStateDimension();
-    printf("Dimension del espacio de estados : %d\n", aa );
+    /*int aa = si_->getStateDimension();
+    printf("\tDimension del espacio de estados : %d\n", aa );*/
     space->copyToReals(reals, currentStates_[0]);
     std::copy(reals.begin(), reals.end(), std::ostream_iterator<double>(out, " "));
     if (referenceStates_.empty())
         return;
-    int adadad = space->getDimension();
-    printf("Puntero Dimension del espacio de estados : %d\n", adadad );
+    /*int adadad = space->getDimension();
+    printf("\tPuntero Dimension del espacio de estados : %d\n", adadad );*/
     for (unsigned int i = 0 ; i < space->getDimension(); ++i)
         out << "0 ";
     out << '0' << std::endl;
@@ -108,7 +108,7 @@ void ompl::auvplanning::PathController::printAsMatrix(std::ostream &out) const
         std::copy(reals_ref.begin(), reals_ref.end(), std::ostream_iterator<double>(out, " "));
         out << controlDurations_[i] << std::endl;
     }
-    printf("Sale de ompl::auvplanning::PathController::printAsMatrix\n");
+    //printf("\tSale de ompl::auvplanning::PathController::printAsMatrix\n");
 }
 
 void ompl::auvplanning::PathController::interpolate()
@@ -119,12 +119,15 @@ void ompl::auvplanning::PathController::interpolate()
         return;
     }
 
-    printf("interpolate: currentStates_: %ld \n",currentStates_.size());
+    /*printf("interpolate: currentStates_: %ld \n",currentStates_.size());
     printf("interpolate: referenceStates_: %ld \n",referenceStates_.size());
-    printf("interpolate: controlDurations_: %ld \n",controlDurations_.size());
+    printf("interpolate: controlDurations_: %ld \n",controlDurations_.size());*/
 
-    const control::SpaceInformation *si = static_cast<const control::SpaceInformation*>(si_.get());
+    control::SpaceInformation *si = static_cast<control::SpaceInformation*>(si_.get());
     ompl::controller::ControllerPtr controller(new ompl::controller::AUV2StepPID(si));
+    /*control::DirectedControlSamplerAllocator ctrlSampler =  si_.get()->allocDirectedControlSampler();
+    auvplanning::AUV2StepPIDControlSampler* controllerSampler = static_cast<auvplanning::AUV2StepPIDControlSampler*>(si_.get());*/
+
     std::vector<base::State*> newCurrentStates;
     std::vector<base::State*> newReferenceStates;
     std::vector<double> newControlDurations;
@@ -134,6 +137,8 @@ void ompl::auvplanning::PathController::interpolate()
     {
         int steps = (int)floor(0.5 + controlDurations_[i] / res);
         assert(steps >= 0);
+        /*printf("PathController steps: %d\n", steps);
+        printf("PathController controlDurations_[i]: %f\n", controlDurations_[i]);*/
         if (steps <= 1)
         {
             newCurrentStates.push_back(currentStates_[i]);
@@ -142,6 +147,7 @@ void ompl::auvplanning::PathController::interpolate()
             continue;
         }
         std::vector<base::State*> istates;
+        //controllerSampler->sampleToStates(control::Control *control, currentStates_[i], referenceStates_[i], istates);
         controller->propagateController(currentStates_[i], referenceStates_[i], istates, steps, true);
         // last state is already in the non-interpolated path
         if (!istates.empty())
@@ -155,7 +161,7 @@ void ompl::auvplanning::PathController::interpolate()
         newControlDurations.push_back(res);
         for (int j = 1 ; j < steps; ++j)
         {
-            newReferenceStates.push_back(si->cloneState(referenceStates_[i]));
+            newReferenceStates.push_back(si_->cloneState(referenceStates_[i]));
             newControlDurations.push_back(res);
         }
     }
@@ -168,9 +174,9 @@ void ompl::auvplanning::PathController::interpolate()
 
     //controller.reset();
 
-    printf("interpolate: newcurrentStates_: %ld \n",currentStates_.size());
+    /*printf("interpolate: newcurrentStates_: %ld \n",currentStates_.size());
     printf("interpolate: newreferenceStates_: %ld \n",referenceStates_.size());
-    printf("interpolate: newcontrolDurations_: %ld \n",controlDurations_.size());
+    printf("interpolate: newcontrolDurations_: %ld \n",controlDurations_.size());*/
 }
 
 bool ompl::auvplanning::PathController::check() const

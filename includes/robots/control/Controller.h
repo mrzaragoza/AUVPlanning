@@ -35,10 +35,7 @@ namespace ompl
             virtual unsigned int propagation(const base::State *source, base::State *dest, unsigned int steps, bool checkValidity) = 0;
             virtual double pid(double reference, double value, double dt, double Kp, double Kd, double Ki, double *pre_error, double *integral, bool isYaw) = 0;
 
-            //control::SpaceInformationPtr          sinf;
             const control::SpaceInformation         *si_;
-            auvplanning::AUVDynamicsPtr             dynamics_;
-            control::ODESolverPtr                   ode_;
             double                                  stepSize;
             control::StatePropagatorPtr             stPropagator;
 

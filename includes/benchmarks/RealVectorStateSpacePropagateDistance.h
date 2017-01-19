@@ -43,6 +43,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include "yaml-cpp/yaml.h"
 
 namespace ompl
 {
@@ -59,6 +60,19 @@ namespace ompl
                 R<sup>dim</sup> will be instantiated */
             RealVectorStateSpacePropagateDistance(unsigned int dim = 0) : RealVectorStateSpace(dim)
             {
+                YAML::Node robot_config = YAML::LoadFile("../includes/robots/torpedo.yaml");
+                double c_rbm1 = robot_config["torpedo/rbMassCoefficients"][0].as<double>();
+                double c_rbm2 = robot_config["torpedo/rbMassCoefficients"][1].as<double>();
+                double c_rbm3 = robot_config["torpedo/rbMassCoefficients"][2].as<double>();
+                double c_am1 = robot_config["torpedo/aMassCoefficients"][0].as<double>();
+                double c_am2 = robot_config["torpedo/aMassCoefficients"][1].as<double>();
+                double c_am3 = robot_config["torpedo/aMassCoefficients"][2].as<double>();
+                double c_ld1 = robot_config["torpedo/dampingCoefficients"][0].as<double>();
+                double c_ld2 = robot_config["torpedo/dampingCoefficients"][1].as<double>();
+                double c_ld3 = robot_config["torpedo/dampingCoefficients"][2].as<double>();
+                const_desacc_x = (c_rbm1 + c_am1)/(2*c_ld1);
+                const_desacc_y = (c_rbm2 + c_am2)/(2*c_ld2);
+                const_desacc_z = (c_rbm3 + c_am3)/(2*c_ld3);
             }
 
             virtual ~RealVectorStateSpacePropagateDistance()
@@ -68,6 +82,12 @@ namespace ompl
             virtual double distance(const State *state1, const State *state2) const;
 
             virtual void interpolate(const State *from, const State *to, const double t, State *state) const;
+
+        private:
+
+            double const_desacc_x;
+            double const_desacc_y;
+            double const_desacc_z;
         };
     }
 }

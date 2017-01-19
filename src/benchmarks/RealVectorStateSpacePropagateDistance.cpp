@@ -34,7 +34,7 @@
 
 /* Author: Ioan Sucan */
 
-#include "benchmark/RealVectorStateSpacePropagateDistance.h"
+#include "benchmarks/RealVectorStateSpacePropagateDistance.h"
 #include "ompl/base/spaces/RealVectorStateSpace.h"
 #include "ompl/base/spaces/RealVectorStateProjections.h"
 #include "ompl/util/Exception.h"
@@ -49,13 +49,24 @@ double ompl::base::RealVectorStateSpacePropagateDistance::distance(const State *
     double dist = 0.0;
     const double *s1 = static_cast<const StateType*>(state1)->values;
     const double *s2 = static_cast<const StateType*>(state2)->values;
-    const double *s3 = s2;
+    double propState[3] = {static_cast<StateType*>(state1)->values[0],
+                            static_cast<StateType*>(state1)->values[1],
+                            static_cast<StateType*>(state1)->values[2]};
+    (*s1) = (*s1+4);
 
+    velocities[0] =  cos(q[3]) * vel_N + sin(q[3]) * vel_E;
+    velocities[1] = -sin(q[3]) * vel_N + cos(q[3]) * vel_E;
+
+    propState[0] = propState[0] + (*s1++) *;
+    propState[1] = propState[1] + (*s1++) *;
+    propState[2] = propState[2] + (*s1++) *;
     
+    double acc_N = ac_surge * cos(q[3]) - ac_sway * sin(q[3]);
+    double acc_E = ac_surge * sin(q[3]) + ac_sway * cos(q[3]);
 
-    for (unsigned int i = 0 ; i < dimension_ ; ++i)
+    for (unsigned int i = 0 ; i < 3 ; ++i)
     {
-        double diff = (*s1++) - (*s2++);
+        double diff = propState[i] - (*s2++);
         dist += diff * diff;
     }
     return sqrt(dist);

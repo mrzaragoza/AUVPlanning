@@ -87,9 +87,7 @@ bool ompl::auvplanning::RigidBodyGeometry::setEnvironmentMesh(const std::string 
 
     if (p < importerEnv_.size())
     {
-        printf("RigidBodyGeometry::computeGeometrySpecification para ejecutar\n");
-        computeGeometrySpecification();        
-        printf("RigidBodyGeometry::computeGeometrySpecification ejecutado. Numero de obstáculos: %ld\n", geom_.obstacles.size());
+        computeGeometrySpecification();
         return true;
     }
     else
@@ -151,7 +149,6 @@ const ompl::base::StateValidityCheckerPtr& ompl::auvplanning::RigidBodyGeometry:
 
     GeometrySpecification geom = getGeometrySpecification();
     validitySvc_.reset (new FCLStateValidityChecker(si, geom, se, selfCollision));
-    printf("RigidBodyGeometry::allocStateValidityChecker ejecutado\n");
-           
+               
     return validitySvc_;
 }

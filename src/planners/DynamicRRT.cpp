@@ -53,6 +53,8 @@ ompl::auvplanning::DynamicRRT::DynamicRRT(const control::SpaceInformationPtr &si
 ompl::auvplanning::DynamicRRT::~DynamicRRT()
 {
     freeMemory();
+    printf("FIN de destructor\n");
+    fflush(stdout);
 }
 
 void ompl::auvplanning::DynamicRRT::setup()
@@ -80,15 +82,46 @@ void ompl::auvplanning::DynamicRRT::freeMemory()
     {
         std::vector<Motion*> motions;
         nn_->list(motions);
+
+        /*printf("Tamaño de NN : %d\n", (int) nn_->size());
+
         for (unsigned int i = 0 ; i < motions.size() ; ++i)
         {
-            if (motions[i]->currentState)
+            si_->printState(motions[i]->currentState);
+        }*/
+
+
+        for (unsigned int i = 0 ; i < motions.size() ; ++i)
+        {
+            //printf("Iteración %d // Tamaño de motion %d \n", i, (int)motions.size());
+
+            /*printf("Sólo con el puntero: %s\n", (motions[i]->currentState) ? "valido" : "no valido");
+            printf("Igualado a nullPtr: %s\n", (motions[i]->currentState != nullptr) ? "valido" : "no valido");
+            printf("Igualado a 0 : %s\n", (motions[i]->currentState != 0) ? "valido" : "no valido");
+            printf("Igualado a NULL: %s\n", (motions[i]->currentState != NULL) ? "valido" : "no valido");*/
+
+            if (motions[i]->currentState){
+                /*printf("+++++++++Borra estado actual (tiempo = %d) : \n\t", motions[i]->steps);
+                si_->printState(motions[i]->currentState);*/
                 si_->freeState(motions[i]->currentState);
-            if (motions[i]->referenceState)
+                //printf("---------Ha borrado el estado \n");
+            }/*else{
+                printf("----------------------------------------------> NO BORRA EL ESTADO ACTUAL\n");
+            }*/
+            if (motions[i]->referenceState){
+                /*printf("*********Borra estado referencia : \n\t");
+                si_->printState(motions[i]->referenceState);*/
                 si_->freeState(motions[i]->referenceState);
+                //printf("---------Ha borrado el estado \n\n");
+            }/*else{
+                printf("----------------------------------------------> NO BORRA EL ESTADO DE REFERENCIA\n\n");
+            }*/
             delete motions[i];
         }
     }
+/*
+    printf("FIN de free memory\n");
+    fflush(stdout);*/
 }
 
 ompl::base::PlannerStatus ompl::auvplanning::DynamicRRT::solve(const base::PlannerTerminationCondition &ptc)
@@ -145,8 +178,10 @@ ompl::base::PlannerStatus ompl::auvplanning::DynamicRRT::solve(const base::Plann
 
         base::State *intermediate_state = si_->allocState();
         si_->copyState(intermediate_state, nmotion->currentState);
-
+        /*printf("\n+++++++++++++++++++++++++Estado inicial\n");
+        si_->printState(intermediate_state);*/
         base::State *intermediate_final_state = si_->allocState();
+        //base::State *previous_state = si_->allocState();
         
         //Total distance
         //double tdist = si_->distance(nmotion->currentState, rmotion->currentState);
@@ -157,45 +192,85 @@ ompl::base::PlannerStatus ompl::auvplanning::DynamicRRT::solve(const base::Plann
 
         while((tiempo < maxDuration && t == minDuration) && ptc == false && solution == NULL){
             /*si_->distance(intermediate_state, rmotion->currentState) > 0.2*tdist && num_intermediate_states < max_num_intermediate_states*/ 
-        	//printf("hola\n");
+        	
         	si_->copyState(intermediate_final_state, rstate);
+            /*printf("Referencia \n");
+            si_->printState(intermediate_final_state);
         	/*printf("Objetivo. intermediate_final_state -> %f, %f, %f, %f\n", intermediate_final_state->as<base::RealVectorStateSpace::StateType>()->values[0],
 				intermediate_final_state->as<base::RealVectorStateSpace::StateType>()->values[1],intermediate_final_state->as<base::RealVectorStateSpace::StateType>()->values[2],
 				intermediate_final_state->as<base::RealVectorStateSpace::StateType>()->values[3]);*/
         	t = controlSampler_->sampleTo(rctrl, intermediate_state, intermediate_final_state);
-        	//printf("adios. tiempo = %d t = %d minimo = %d maximo = %d\n", tiempo, t, siC_->getMinControlDuration(), siC_->getMaxControlDuration());
-        	si_->copyState(intermediate_state, intermediate_final_state);
+        	
 
-        	tiempo = tiempo + t;
-        	//printf("adios 2\n");
-        	/* create a motion */
-            Motion *motion = new Motion(siC_);
-            si_->copyState(motion->currentState, intermediate_state);
-            si_->copyState(motion->referenceState, rmotion->currentState);
-            motion->steps = tiempo;
-            motion->parent = nmotion;
-
-            nn_->add(motion);
-
-            double dist = 0.0;
-            if(goal->isSatisfied(motion->currentState, &dist)){ 
-                approxdif = dist;
-                solution = motion;
-            }
-            if (dist < approxdif)
+            /*if(si_->equalStates(previous_state, intermediate_final_state))
             {
-                //printf("Distancia más cercana: %f\n", dist);
-                approxdif = dist;
-                approxsol = motion;
-            }
-        	//num_intermediate_states++;
-        }
+                printf("-------------REPETIDO!: (tiempo %d)(t %d)\n", tiempo,t);
+                printf("\t PREVIO ");
+                si_->printState(previous_state);
+                printf("\t ESTADO ");
+                si_->printState(intermediate_final_state);
+                printf("\t REFERENCIA ");
+                si_->printState(rstate);
+                printf("\t PADRE ");
+                si_->printState(intermediate_state);
 
+            }
+
+            if(si_->equalStates(intermediate_state, intermediate_final_state))
+            {
+                printf("---+++++++++++++++++++----------ESTADOS source y destination IGUALES!!!!!!!!!! t = %d // Contador = %d \n",t, contador);
+            }*/
+
+            /*printf("Resultado\n");
+            si_->printState(intermediate_final_state);
+            si_->copyState(previous_state, intermediate_state);*/
+            si_->copyState(intermediate_state, intermediate_final_state);
+            /*printf("Copia de Resultado\n");
+            si_->printState(intermediate_state);*/
+
+            tiempo = tiempo + t;
+            
+            if(t > 0){ //Si el tiempo de propagación es 0, significa que o estamos ya en el destino, o que hemos chocado con un obstáculo                
+                /* create a motion */
+                //printf("////////////////////////////////////////////////Se añade estado al árbol t = %d // Contador = %d \n",t, contador);
+                Motion *motion = new Motion(siC_);
+                si_->copyState(motion->currentState, intermediate_state);
+                si_->copyState(motion->referenceState, rmotion->currentState);
+                motion->steps = tiempo;
+                motion->parent = nmotion;
+                /*printf("-------------Motion resultado: (tiempo %d)\n", tiempo);
+                printf("\t");
+                si_->printState(motion->currentState);
+                printf("\t");
+                si_->printState(motion->referenceState);
+                printf("\t");
+                si_->printState(motion->parent->currentState);*/
+
+                nn_->add(motion);
+
+                double dist = 0.0;
+                if(goal->isSatisfied(motion->currentState, &dist)){ 
+                    approxdif = dist;
+                    solution = motion;
+                }
+                if (dist < approxdif)
+                {
+                    //printf("Distancia más cercana: %f\n", dist);
+                    approxdif = dist;
+                    approxsol = motion;
+                }
+            }
+        	
+            contador++;
+        }
+        /*printf("-Sale del while dynamic RRT!! Contador = %d \n", contador);
+        si_->freeState(previous_state);*/
         si_->freeState(intermediate_state);
         si_->freeState(intermediate_final_state);
 
-        contador++;
     }
+
+    //printf("Numero de iteraciones %d\n", contador);
 
     bool solved = false;
     bool approximate = false;

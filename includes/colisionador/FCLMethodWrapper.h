@@ -76,6 +76,7 @@ namespace ompl
                 fcl::Transform3f transform;
 
                 callCounter_++;
+                //printf("1 State Collision Call Counter %d\n", callCounter_);
 
                 if (environment_.num_tris > 0)
                 {
@@ -125,6 +126,7 @@ namespace ompl
                 fcl::ContinuousCollisionResult collisionResult;
 
                 callCounter_++;
+                //printf("2 State Collision Call Counter %d\n", callCounter_);
 
                 // Checking for collision with environment
                 if (environment_.num_tris > 0)
@@ -204,6 +206,9 @@ namespace ompl
                             minDist = distanceResult.min_distance;
                     }
                 }
+                
+                callCounter_++;                
+                //printf("3 State Collision Call Counter %d\n", callCounter_);
 
                 return minDist;
             }
@@ -319,7 +324,7 @@ namespace ompl
             /// \brief Callback to extract translation and rotation from a state
             FCLPoseFromStateCallback    poseFromStateCallback_;
 
-            unsigned int                callCounter_;
+            mutable unsigned int        callCounter_;
         };
     }
 }

@@ -22,6 +22,7 @@ MESSAGE( STATUS "BOOST INCLUDE DIRECTORY " ${Boost_INCLUDE_DIRS} )
 MESSAGE( STATUS "BOOST LIBRARY DIRECTORY " ${Boost_LIBRARIES} )
 
 set(CMAKE_CXX_FLAGS "-O8 -fpermissive -lompl -lompl_app_base -lboost_system -lyaml-cpp")
+#set(CMAKE_CXX_FLAGS " -fpermissive -lompl -lompl_app_base -lboost_system -lyaml-cpp")
 
 include_directories( includes ${OMPL_INCLUDE_DIRS} ${OMPLAPP_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} ${FCL_INCLUDE_DIRS} )
 LINK_DIRECTORIES ( ${Boost_LIBRARY_DIRS} )
@@ -33,10 +34,9 @@ add_executable(AUVPlanning src/benchmarks/AUVPlanning.cpp
 	src/colisionador/RigidBodyGeometry.cpp 
 	src/colisionador/appUtil.cpp
 	#src/colisionador/assimpUtil.cpp
-	src/planners/AUVGoal.cpp
+	src/planners/AUVGoalState.cpp
 	src/planners/PlanificadorLocal/MuestreadorControl/MuestreadorControl.cpp
-	src/planners/PlanificadorLocal/AUVSemiRandomDirectedControlSampler.cpp 
-	src/planners/PlanificadorLocal/AUVDirectedControlSampler.cpp
+	src/planners/PlanificadorLocal/AUVSemiRandomDirectedControlSampler.cpp
 	src/planners/DynamicRRT.cpp
 	src/planners/PlanificadorLocal/AUVPIDControlSampler.cpp
 	src/planners/PlanificadorLocal/AUV2StepPIDControlSampler.cpp
@@ -44,6 +44,7 @@ add_executable(AUVPlanning src/benchmarks/AUVPlanning.cpp
 	src/robots/control/Controller.cpp
 	src/robots/control/AUVPID.cpp
 	src/robots/control/AUV2StepPID.cpp
+	src/benchmarks/RealVectorStateSpaceSimplePropagateDistance.cpp
 	)
 set_property(TARGET AUVPlanning PROPERTY CXX_STANDARD 11)
 target_link_libraries(AUVPlanning PUBLIC assimp ompl_app_base ompl_app yaml-cpp ${OMPLAPP_LIBRARIES} ${OMPL_LIBRARIES} ${FCL_LIBRARIES} ${Boost_LIBRARIES})
