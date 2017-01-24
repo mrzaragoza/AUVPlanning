@@ -5,7 +5,7 @@ general/checkResolution: 0.1
 general/distanceToGoal: 1.5
 
 general/controlSampler: "Random" # Random, SemiRandom || DynamicRRT -> 2StepsPID
-general/distanceFunction: "Propagated" # "Euclidean", "Propagated"
+general/distanceFunction: "Euclidean" # "Euclidean", "Propagated"
 
 general/start: [-20, 20, -5, 0, 0, 0, 0, 0]
 general/goal:  [20, -20, -15, 0, 0, 0, 0, 0]
@@ -24,9 +24,9 @@ plan/solutionFile: "plannerDebugKPIECE1_6_test_Z.txt"
 plan/solutionQuatFile: "plannerWithQuatDebugKPIECE1_6_test_Z.txt"
 plan/solutionControlsFile: "plannerControlsKPIECE1_6_test_Z.txt"
 
-benchmark/testname: "KPIECE1 Random Test 10 runs 6_test_Z PropagatedDistance"
-benchmark/pathFolder: "KPIECE1_Random_Test_10_runs_6_test_Z_PropagatedDistance"
-benchmark/logFile: "KPIECE1_Random_Test_10_runs_6_test_Z_PropagatedDistance.log"
+benchmark/testname: "KPIECE1_Random_Test_10_runs_6_test_Z_EuclideanDistance"
+benchmark/pathFolder: "KPIECE1_Random_Test_10_runs_6_test_Z_EuclideanDistance"
+benchmark/logFile: "KPIECE1_Random_Test_10_runs_6_test_Z_EuclideanDistance.log"
 benchmark/runtime: 100
 benchmark/runmemory: 10000
 benchmark/runcount: 10

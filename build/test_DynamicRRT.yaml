@@ -24,7 +24,7 @@ plan/solutionFile: "plannerDebugDynammicRRT_6_test_Z.txt"
 plan/solutionQuatFile: "plannerWithQuatDebugDynammicRRT_6_test_Z.txt"
 plan/solutionControlsFile: "plannerControlsDynammicRRT_6_test_Z.txt"
 
-benchmark/testname: "DynammicRRT 2StepsPID Test 10 runs 1_test_pasaje_estrecho EuclideanDistance"
+benchmark/testname: "DynammicRRT_2StepsPID_Test_10_runs_1_test_pasaje_estrecho_EuclideanDistance"
 benchmark/pathFolder: "DynammicRRT_2StepsPID_Test_10_runs_1_test_pasaje_estrecho_EuclideanDistance"
 benchmark/logFile: "DynammicRRT_2StepsPID_Test_10_runs_1_test_pasaje_estrecho_EuclideanDistance.log"
 benchmark/runtime: 100

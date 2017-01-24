@@ -4,10 +4,11 @@
 #include "ompl/control/DirectedControlSampler.h"
 #include "ompl/control/ControlSampler.h"
 #include "ompl/control/SpaceInformation.h"
+#include "ompl/base/spaces/RealVectorStateSpace.h"
 #include "ompl/control/spaces/RealVectorControlSpace.h"
 #include "ompl/control/ControlSpace.h"
-#include "planners/PlanificadorLocal/MuestreadorControl/MuestreadorControl.h"
 #include "yaml-cpp/yaml.h"
+#include "ompl/util/RandomNumbers.h"
 
 namespace ompl
 {
@@ -17,7 +18,7 @@ namespace ompl
         class AUVSemiRandomDirectedControlSampler : public control::DirectedControlSampler
         {
         public:
-            AUVSemiRandomDirectedControlSampler(const control::SpaceInformation *si, unsigned int k = 1, YAML::Node config = YAML::LoadFile("test.yaml"));
+            AUVSemiRandomDirectedControlSampler(const control::SpaceInformation *si, unsigned int k = 1);
 
             ~AUVSemiRandomDirectedControlSampler();
 
@@ -35,40 +36,16 @@ namespace ompl
 
             unsigned int sampleTo(control::Control *control, const control::Control *previous, const base::State *source, base::State *dest);
 
-            inline void setGoal(base::State *state){
-                //cs_->setGoal(state);
-                mc_->setGoal(state);
-            }
-
-            inline ompl::base::State* getGoal(){
-                //return cs_->getGoal();
-                return mc_->getGoal();
-            }
-
-            inline void setStart(base::State *state){
-                //cs_->setStart(state);
-                mc_->setStart(state);
-            }
-
-            inline ompl::base::State* getStart(){
-                //return cs_->getStart();
-                return mc_->getStart();
-            }
-
-            static ompl::control::ControlSamplerPtr MuestreadorControlAllocator(const ompl::control::ControlSpace *sp);
-
         protected:
 
+            void sampleControl(control::Control *control, const base::State * state, const base::State *dest);
             unsigned int getBestControl (control::Control *control, const base::State *source, base::State *dest);
 
             control::ControlSpacePtr         csp_;
-            control::ControlSamplerPtr        cs_;
 
-            static MuestreadorControl                *mc_;
-            ompl::control::ControlSamplerAllocator        mca;
-
-            /** \brief The number of controls to sample when finding the best control*/
-            unsigned int            numControlSamples_;
+            unsigned int                     numControlSamples_;
+            ompl::RNG                        rng_;
+            double                           controlZEstable;
 
         };
 
@@ -77,3 +54,4 @@ namespace ompl
 
 
 #endif
+

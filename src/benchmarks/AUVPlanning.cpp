@@ -277,6 +277,8 @@ void Main::AUVRobotBenchmark()
     tools::Benchmark b(robot->getSimpleSetup(), config["benchmark/testname"].as<std::string>());
     //b.addExperimentParameter("save_paths", "INTEGER", "10")
     b.addExperimentParameter("num_dofs", "INTEGER", "8");
+	b.addExperimentParameter("muestreador_de_control", "STRING", config["general/controlSampler"].as<std::string>());
+	b.addExperimentParameter("funcion_de_distancia", "STRING", config["general/distanceFunction"].as<std::string>());
     b.addExperimentParameter("distance_to_goal_to_be_considered_achieved", "REAL", config["general/distanceToGoal"].as<std::string>());
     b.addExperimentParameter("propagation_step_size", "INTEGER", config["general/propagationStepSize"].as<std::string>());
     b.addExperimentParameter("minimum_control_duration", "INTEGER", config["general/minControlDuration"].as<std::string>());

@@ -12,7 +12,7 @@ ompl::auvplanning::AUVRobot::AUVRobot(YAML::Node config, int typeOfStateSpace) :
     rbg_(),
     /*validitySvc_(new oauv::FCLStateValidityChecker(sinf_, rbg_.getGeometrySpecification(), getGeometricStateExtractor(), false)),*/
     dynamics_(new oauv::AUVDynamics()),
-    odeSolver_(new oauv::ODEBasicSolver<>(sinf_, boost::bind(&oauv::AUVDynamics::ode, dynamics_, _1, _2, _3))),
+    odeSolver_(new oc::ODEBasicSolver<>(sinf_, boost::bind(&oauv::AUVDynamics::ode, dynamics_, _1, _2, _3))),
     geometricStateSpace(new ob::RealVectorStateSpace(3)),
     config_(config)
 {
@@ -44,18 +44,18 @@ void ompl::auvplanning::AUVRobot::setup(int type)
     bounds.setLow(1,boundsGeometric.low[1]);
     bounds.setLow(2,boundsGeometric.low[2]);
     bounds.setLow(3,-M_PI);
-    bounds.setLow(4,-2);
-    bounds.setLow(5,-2);
-    bounds.setLow(6,-2);
-    bounds.setLow(7,-2);
+    bounds.setLow(4,-2.5);
+    bounds.setLow(5,-2.5);
+    bounds.setLow(6,-2.5);
+    bounds.setLow(7,-2.5);
     bounds.setHigh(0,boundsGeometric.high[0]);
     bounds.setHigh(1,boundsGeometric.high[1]);
     bounds.setHigh(2,boundsGeometric.high[2]);
     bounds.setHigh(3,M_PI);
-    bounds.setHigh(4,2);
-    bounds.setHigh(5,2);
-    bounds.setHigh(6,2);
-    bounds.setHigh(7,2);
+    bounds.setHigh(4,2.5);
+    bounds.setHigh(5,2.5);
+    bounds.setHigh(6,2.5);
+    bounds.setHigh(7,2.5);
 
     ss_.getStateSpace()->as<ob::RealVectorStateSpace>()->setBounds(bounds);
 
@@ -69,11 +69,11 @@ void ompl::auvplanning::AUVRobot::setup(int type)
     ss_.getStateSpace()->setup();
 
     if (!ss_.getStateSpace()->hasDefaultProjection()){
-        //OMPL_DEBUG("GeometricStateProjector a realizar");
+        OMPL_DEBUG("ss_.getStateSpace()->registerDefaultProjection GeometricStateProjector a realizar");
         ss_.getStateSpace()->registerDefaultProjection(auvplanning::allocGeometricStateProjector(ss_.getStateSpace(),
                                                                    getGeometricComponentStateSpace(),
                                                                    getGeometricStateExtractor()));
-        //OMPL_DEBUG("GeometricStateProjector realizado");
+        OMPL_DEBUG("ss_.getStateSpace()->registerDefaultProjection GeometricStateProjector realizado");
     }
 
     ss_.setup();
@@ -115,9 +115,9 @@ void ompl::auvplanning::AUVRobot::setDefaultControlBounds(void)
     ss_.getControlSpace()->as<oc::RealVectorControlSpace>()->setBounds(cbounds);
 }
 
-ompl::control::DirectedControlSamplerPtr ompl::auvplanning::AUVRobot::AUVSemiRandomDirectedControlSamplerAllocator(const ompl::control::SpaceInformation *si, unsigned int k, YAML::Node config)
+ompl::control::DirectedControlSamplerPtr ompl::auvplanning::AUVRobot::AUVSemiRandomDirectedControlSamplerAllocator(const ompl::control::SpaceInformation *si, unsigned int k)
 {
-    return ompl::control::DirectedControlSamplerPtr(new oauv::AUVSemiRandomDirectedControlSampler(si, k, config));
+    return ompl::control::DirectedControlSamplerPtr(new oauv::AUVSemiRandomDirectedControlSampler(si, k));
 }
 
 ompl::control::DirectedControlSamplerPtr ompl::auvplanning::AUVRobot::AUV2StepPIDControlSamplerAllocator(const ompl::control::SpaceInformation *si, YAML::Node config)
@@ -144,7 +144,7 @@ void ompl::auvplanning::AUVRobot::setDirectedControlSampler(int type){
             dcsa = boost::bind(RandomDirectedControlSamplerAllocator, sinf_.get(), 15);
             break;
         case AUV_SEMI_RANDOM_DCS:
-            dcsa = boost::bind(AUVSemiRandomDirectedControlSamplerAllocator, sinf_.get(), 15, config_);
+            dcsa = boost::bind(AUVSemiRandomDirectedControlSamplerAllocator, sinf_.get(), 15);
             break;
         case AUV_PID_DCS:
             dcsa = boost::bind(AUVPIDControlSamplerAllocator, sinf_.get(), 15, config_);

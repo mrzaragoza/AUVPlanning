@@ -32,6 +32,9 @@ namespace ompl
 
             double distance(const State *state1, const State *state2) const;
             //void freeState(State *state) const;
+            bool    isMetricSpace () const{ return false; }
+            bool    hasSymmetricDistance () const{  return false; }
+            bool    hasSymmetricInterpolate () const{   return false; }
 
         private:
 

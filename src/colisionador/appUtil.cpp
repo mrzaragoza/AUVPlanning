@@ -1,15 +1,3 @@
-/*********************************************************************
-* Rice University Software Distribution License
-*
-* Copyright (c) 2010, Rice University
-* All Rights Reserved.
-*
-* For a full description see the file named LICENSE.
-*
-*********************************************************************/
-
-/* Author: Ioan Sucan */
-
 #include "colisionador/appUtil.h"
 #include <ompl/base/spaces/RealVectorStateSpace.h>
 #include <ompl/control/planners/syclop/GridDecomposition.h>
@@ -214,7 +202,7 @@ ompl::base::OptimizationObjectivePtr ompl::auvplanning::getOptimizationObjective
         obj.reset(new base::MechanicalWorkOptimizationObjective(si));
     else
     {
-        OMPL_WARN("ompl::app::getOptimizationObjective: unknown optimization objective called \"%s\"; using \"length\" instead", objective.c_str());
+        OMPL_WARN("ompl::auvplanning::getOptimizationObjective: unknown optimization objective called \"%s\"; using \"length\" instead", objective.c_str());
         obj.reset(new base::PathLengthOptimizationObjective(si));
     }
     obj->setCostThreshold(base::Cost(threshold));

@@ -24,7 +24,7 @@ plan/solutionFile: "plannerDebugPDST_6_test_Z.txt"
 plan/solutionQuatFile: "plannerWithQuatDebugPDST_6_test_Z.txt"
 plan/solutionControlsFile: "plannerControlsPDST_6_test_Z.txt"
 
-benchmark/testname: "PDST Random Test 10 runs 6_test_Z EuclideanDistance"
+benchmark/testname: "PDST_Random_Test_10_runs_6_test_Z_EuclideanDistance"
 benchmark/pathFolder: "PDST_Random_Test_10_runs_6_test_Z_EuclideanDistance"
 benchmark/logFile: "PDST_Random_Test_10_runs_6_test_Z_EuclideanDistance.log"
 benchmark/runtime: 100
@@ -33,11 +33,11 @@ benchmark/runcount: 10
 benchmark/displayProgress: true
 benchmark/useThreads: true
 
-dynamics/time: 4
-dynamics/th1: 0
+dynamics/time: 400
+dynamics/th1: 0.2
 dynamics/th2: 0
 dynamics/th3: 0
 
-control/start: [-20, 10, -5, 0, 0, 0, 0, 0]
-control/reference:  [17.39895, 0.974125, -5.48273, -1.68379, 1.33622, -1.0671, 1.33187, -0.321306]
-control/duration: 100000
+control/start:      [0, 0, 0, 0, 0, 0, 0, 0]
+control/reference:  [10, 0, -5, 0, 0, 0, 0, 0]
+control/duration: 10000

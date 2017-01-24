@@ -24,7 +24,7 @@ plan/solutionFile: "plannerDebugRRT_6_test_Z.txt"
 plan/solutionQuatFile: "plannerWithQuatDebugRRT_6_test_Z.txt"
 plan/solutionControlsFile: "plannerControlsRRT_6_test_Z.txt"
 
-benchmark/testname: "RRT Random Test 10 runs 6_test_Z PropagatedDistance"
+benchmark/testname: "RRT_Random_Test_10_runs_6_test_Z_PropagatedDistance"
 benchmark/pathFolder: "RRT_Random_Test_10_runs_6_test_Z_PropagatedDistance"
 benchmark/logFile: "RRT_Random_Test_10_runs_6_test_Z_PropagatedDistance.log"
 benchmark/runtime: 100

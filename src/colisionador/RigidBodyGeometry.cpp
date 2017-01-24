@@ -1,14 +1,6 @@
-/*********************************************************************
-* Rice University Software Distribution License
-*
-* Copyright (c) 2010, Rice University
-* All Rights Reserved.
-*
-* For a full description see the file named LICENSE.
-*
-*********************************************************************/
-
-/* Author: Ioan Sucan */
+/*
+* This class is based on OMPLapp RigidBodyGeometry Class
+*/
 
 #include "colisionador/RigidBodyGeometry.h"
 

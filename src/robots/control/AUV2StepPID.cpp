@@ -98,9 +98,9 @@ unsigned int ompl::controller::AUV2StepPID::propagation(const base::State *sourc
         stPropagator->propagate(stateTemp,newControl,stepSize,stateRes);
         si_->enforceBounds(stateRes);
         si_->copyState(stateTemp,stateRes);
-        /*si_->printState(stateTemp);
+        si_->printState(stateTemp);
         //printf("\r");
-        usleep(50);*/
+        usleep(50);
 
         hasArrived = (fabs(pre_erroryaw) < rango_yaw_objetivo) ? true : false;        
         tiempo++;
@@ -154,12 +154,13 @@ unsigned int ompl::controller::AUV2StepPID::propagation(const base::State *sourc
         si_->enforceBounds(stateRes);
         
         si_->copyState(stateTemp,stateRes);
-        /*si_->printState(stateTemp);
+        si_->printState(stateTemp);
+        si_->printControl(newControl);
         //printf("\r");
         usleep(50);
         if(fabs(pre_errorsurge) < rango_dist_objetivo){
             printf("rango_dist_objetivo %f\n", rango_dist_objetivo);
-        }*/
+        }
         hasArrived = (fabs(pre_errorsurge) < rango_dist_objetivo && fabs(pre_errorz) < rango_profundidad_objetivo) ? true : false;
         tiempo++;
     }

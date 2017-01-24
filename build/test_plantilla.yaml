@@ -1,39 +1,37 @@
 general/propagationStepSize: 0.05
 general/minControlDuration: 50
-general/maxControlDuration: 1000
+general/maxControlDuration: 100
 general/checkResolution: 0.1
 general/distanceToGoal: 1.5
 
 general/controlSampler: "Random" # Random, SemiRandom || DynamicRRT -> 2StepsPID
 general/distanceFunction: "Euclidean" # "Euclidean", "Propagated"
 
-general/start: [-20, 20, -5, 0, 0, 0, 0, 0] 
-general/goal:  [20, -20, -15, 0, 0, 0, 0, 0] 
+general/start: [-20, 20, -5, 0, 0, 0, 0, 0]
+general/goal:  [20, -20, -15, 0, 0, 0, 0, 0]
 general/env_file: "/home/guillermo/workspace_auv/resources/EntornosParaTests/6_test_Z.dae" 
 general/robot_file: "/home/guillermo/workspace_auv/resources/EntornosParaTests/cilindro_submarino.dae"
 
-general/planners: ["RRT"] # RRT, EST, PDST, KPIECE, DynammicRRT
-EST/Range: [200, 500, 1000, 5000, 10000] # [10, 50, 75, 100, 250, 500, 750, 1000]
+general/planners: ["EST"] # "RRT", "EST", "PDST", "KPIECE1", "DynammicRRT"
+EST/Range: [20, 2, 5, 10] # [1, 2, 5, 10]
 KPIECE1/numPlanners: 2
 KPIECE1/borderFraction: [0.7, 0.9] # De 0 a 1
 KPIECE1/CellScoreFactor: [0.8, 0.5, 0.9, 0.3] # [0..1, 0..1] [good, bad]
 KPIECE1/MaxCloseSampleCount: [10, 20] # Integer
 
 plan/time: 150
-plan/solutionFile: "plannerDebugRRT_6_test_Z.txt"
-plan/solutionQuatFile: "plannerWithQuatDebugRRT_6_test_Z.txt"
-plan/solutionControlsFile: "plannerControlsRRT_6_test_Z.txt"
+plan/solutionFile: "plannerDebugEST_6_test_Z.txt"
+plan/solutionQuatFile: "plannerWithQuatDebugEST_6_test_Z.txt"
+plan/solutionControlsFile: "plannerControlsEST_6_test_Z.txt"
 
-benchmark/testname: "RRT SemiRandom Test 10 runs paredgruesa_lateral cilindro_submarinoPropagatedDistance"
-benchmark/pathFolder: "RRT_SemiRandom_Test_10_runs_paredgruesa_lateral_cilindro_submarinoPropagatedDistance.lo"
-benchmark/runtime: 5
+benchmark/testname: "EST_Random_Test_10_runs_6_test_Z_EuclideanDistance"
+benchmark/pathFolder: "EST_Random_Test_10_runs_6_test_Z_EuclideanDistance"
+benchmark/logFile: "EST_Random_Test_10_runs_6_test_Z_EuclideanDistance.log"
+benchmark/runtime: 100
 benchmark/runmemory: 10000
 benchmark/runcount: 10
 benchmark/displayProgress: true
 benchmark/useThreads: true
-benchmark/solutionFile: "benchmark10RRT_SemiRandom_paredgruesa_lateralPropagatedDistance"
-benchmark/solutionQuatFile: "benchmarkWithQuat10RRT_SemiRandom_paredgruesa_lateralPropagatedDistance"
-benchmark/solutionControlsFile: "benchmarkControls10RRT_SemiRandom_paredgruesa_lateralPropagatedDistance"
 
 dynamics/time: 4
 dynamics/th1: 0

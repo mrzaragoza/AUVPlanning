@@ -35,7 +35,7 @@ add_executable(AUVPlanning src/benchmarks/AUVPlanning.cpp
 	src/colisionador/appUtil.cpp
 	#src/colisionador/assimpUtil.cpp
 	src/planners/AUVGoalState.cpp
-	src/planners/PlanificadorLocal/MuestreadorControl/MuestreadorControl.cpp
+	#src/planners/PlanificadorLocal/MuestreadorControl/MuestreadorControl.cpp
 	src/planners/PlanificadorLocal/AUVSemiRandomDirectedControlSampler.cpp
 	src/planners/DynamicRRT.cpp
 	src/planners/PlanificadorLocal/AUVPIDControlSampler.cpp

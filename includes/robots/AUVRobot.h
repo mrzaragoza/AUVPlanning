@@ -87,7 +87,7 @@ namespace ompl
   protected:
     static ompl::control::DirectedControlSamplerPtr AUV2StepPIDControlSamplerAllocator(const ompl::control::SpaceInformation *si, YAML::Node config);
     static ompl::control::DirectedControlSamplerPtr AUVPIDControlSamplerAllocator(const ompl::control::SpaceInformation *si, unsigned int k, YAML::Node config);
-    static ompl::control::DirectedControlSamplerPtr AUVSemiRandomDirectedControlSamplerAllocator(const ompl::control::SpaceInformation *si, unsigned int k, YAML::Node config);
+    static ompl::control::DirectedControlSamplerPtr AUVSemiRandomDirectedControlSamplerAllocator(const ompl::control::SpaceInformation *si, unsigned int k);
     static ompl::control::DirectedControlSamplerPtr RandomDirectedControlSamplerAllocator(const ompl::control::SpaceInformation *si, unsigned int k);
 
     const base::State* getGeometricComponentStateInternal(const base::State* state, unsigned int /*index*/) const

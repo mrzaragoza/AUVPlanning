@@ -1,6 +1,6 @@
 general/propagationStepSize: 0.05
-general/minControlDuration: 20
-general/maxControlDuration: 1000
+general/minControlDuration: 50
+general/maxControlDuration: 100
 general/checkResolution: 0.1
 general/distanceToGoal: 1.5
 
@@ -13,7 +13,7 @@ general/env_file: "/home/guillermo/workspace_auv/resources/EntornosParaTests/6_t
 general/robot_file: "/home/guillermo/workspace_auv/resources/EntornosParaTests/cilindro_submarino.dae"
 
 general/planners: ["EST"] # "RRT", "EST", "PDST", "KPIECE1", "DynammicRRT"
-EST/Range: [10, 50, 100, 500, 1000] # [10, 50, 75, 100, 250, 500, 750, 1000]
+EST/Range: [20, 2, 5, 10] # [1, 2, 5, 10]
 KPIECE1/numPlanners: 2
 KPIECE1/borderFraction: [0.7, 0.9] # De 0 a 1
 KPIECE1/CellScoreFactor: [0.8, 0.5, 0.9, 0.3] # [0..1, 0..1] [good, bad]
@@ -24,7 +24,7 @@ plan/solutionFile: "plannerDebugEST_6_test_Z.txt"
 plan/solutionQuatFile: "plannerWithQuatDebugEST_6_test_Z.txt"
 plan/solutionControlsFile: "plannerControlsEST_6_test_Z.txt"
 
-benchmark/testname: "EST Random Test 10 runs 6_test_Z EuclideanDistance"
+benchmark/testname: "EST_Random_Test_10_runs_6_test_Z_EuclideanDistance"
 benchmark/pathFolder: "EST_Random_Test_10_runs_6_test_Z_EuclideanDistance"
 benchmark/logFile: "EST_Random_Test_10_runs_6_test_Z_EuclideanDistance.log"
 benchmark/runtime: 100

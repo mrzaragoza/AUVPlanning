@@ -13,7 +13,7 @@ general/env_file: "/home/guillermo/workspace_auv/resources/EntornosParaTests/2_t
 general/robot_file: "/home/guillermo/workspace_auv/resources/EntornosParaTests/cilindro_submarino.dae"
 
 general/planners: ["RRT", "EST", "PDST", "KPIECE1"] # "RRT", "EST", "PDST", "KPIECE1", "DynamicRRT"
-EST/Range: [200] # [10, 50, 75, 100, 250, 500, 750, 1000]
+EST/Range: [5, 10] # [1, 2, 5, 10]
 KPIECE1/numPlanners: 2
 KPIECE1/borderFraction: [0.7, 0.9] # De 0 a 1
 KPIECE1/CellScoreFactor: [0.8, 0.5, 0.9, 0.3] # [0..1, 0..1] [good, bad]
@@ -24,7 +24,7 @@ plan/solutionFile: "plannerDebugRRT_2_test_pared.txt"
 plan/solutionQuatFile: "plannerWithQuatDebugRRT_2_test_pared.txt"
 plan/solutionControlsFile: "plannerControlsRRT_2_test_pared.txt"
 
-benchmark/testname: "REPK Random Test 10 runs 2_test_pared EuclideanDistance"
+benchmark/testname: "REPK_Random_Test_10_runs_2_test_pared_EuclideanDistance"
 benchmark/pathFolder: "REPK_Random_Test_10_runs_2_test_pared_EuclideanDistance"
 benchmark/logFile: "REPK_Random_Test_10_runs_2_test_pared_EuclideanDistance.log"
 benchmark/runtime: 100
