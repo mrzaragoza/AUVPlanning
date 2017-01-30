@@ -6,6 +6,7 @@ general/distanceToGoal: 1.5
 
 general/controlSampler: "Random" # Random, SemiRandom || DynamicRRT -> 2StepsPID
 general/distanceFunction: "Euclidean" # "Euclidean", "Propagated"
+general/numberOfCellsInProjectionDimension: 20
 
 general/start: [-20, 20, -5, 0, 0, 0, 0, 0]
 general/goal:  [20, -20, -15, 0, 0, 0, 0, 0]

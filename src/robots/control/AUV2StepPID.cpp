@@ -53,6 +53,10 @@ unsigned int ompl::controller::AUV2StepPID::propagation(const base::State *sourc
 
     while(tiempo < steps && !hasArrived){
         //printf("getBestControl. en bucle");
+        dist_x = dest->as<base::RealVectorStateSpace::StateType>()->values[0] - 
+                                            stateTemp->as<base::RealVectorStateSpace::StateType>()->values[0];
+        dist_y = dest->as<base::RealVectorStateSpace::StateType>()->values[1] - 
+                                            stateTemp->as<base::RealVectorStateSpace::StateType>()->values[1];
         z = stateTemp->as<base::RealVectorStateSpace::StateType>()->values[2];
         yaw = stateTemp->as<base::RealVectorStateSpace::StateType>()->values[3];
         heading = atan2(dist_y,dist_x); //radianes
@@ -97,17 +101,19 @@ unsigned int ompl::controller::AUV2StepPID::propagation(const base::State *sourc
     
         stPropagator->propagate(stateTemp,newControl,stepSize,stateRes);
         si_->enforceBounds(stateRes);
+
         si_->copyState(stateTemp,stateRes);
-        si_->printState(stateTemp);
+        //si_->printState(stateTemp);
         //printf("\r");
-        usleep(50);
+        //usleep(50);
 
         hasArrived = (fabs(pre_erroryaw) < rango_yaw_objetivo) ? true : false;        
         tiempo++;
     }
 
     hasArrived = (pre_errorsurge != 0 && (fabs(pre_errorsurge) < rango_dist_objetivo && fabs(pre_errorz) < rango_profundidad_objetivo)) ? true : false;
-    
+    double dist_previa = 9999999999999;
+
     while(tiempo < steps && !hasArrived){
         z = stateTemp->as<base::RealVectorStateSpace::StateType>()->values[2];
         dist_x = dest->as<base::RealVectorStateSpace::StateType>()->values[0] - stateTemp->as<base::RealVectorStateSpace::StateType>()->values[0];
@@ -154,14 +160,16 @@ unsigned int ompl::controller::AUV2StepPID::propagation(const base::State *sourc
         si_->enforceBounds(stateRes);
         
         si_->copyState(stateTemp,stateRes);
-        si_->printState(stateTemp);
-        si_->printControl(newControl);
+        /*si_->printState(stateTemp);
+        si_->printControl(newControl);*/
         //printf("\r");
-        usleep(50);
-        if(fabs(pre_errorsurge) < rango_dist_objetivo){
-            printf("rango_dist_objetivo %f\n", rango_dist_objetivo);
-        }
+        //usleep(50);
+
         hasArrived = (fabs(pre_errorsurge) < rango_dist_objetivo && fabs(pre_errorz) < rango_profundidad_objetivo) ? true : false;
+
+        hasArrived = (hasArrived || dist_previa < dist_actual) ? true : false;
+        dist_previa = dist_actual;
+
         tiempo++;
     }
 

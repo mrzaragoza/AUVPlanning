@@ -88,6 +88,10 @@ unsigned int ompl::auvplanning::AUV2StepPIDControlSampler::propagation(control::
 
     while(tiempo < minDuration && !hasArrived){
         //printf("getBestControl. en bucle");
+        dist_x = dest->as<base::RealVectorStateSpace::StateType>()->values[0] - 
+                                            stateTemp->as<base::RealVectorStateSpace::StateType>()->values[0];
+        dist_y = dest->as<base::RealVectorStateSpace::StateType>()->values[1] - 
+                                            stateTemp->as<base::RealVectorStateSpace::StateType>()->values[1];
         z = stateTemp->as<base::RealVectorStateSpace::StateType>()->values[2];
         yaw = stateTemp->as<base::RealVectorStateSpace::StateType>()->values[3];
         heading = atan2(dist_y,dist_x); //radianes
@@ -152,6 +156,7 @@ unsigned int ompl::auvplanning::AUV2StepPIDControlSampler::propagation(control::
     }
 
     hasArrived = (pre_errorsurge != 0 && (fabs(pre_errorsurge) < rango_dist_objetivo && fabs(pre_errorz) < rango_profundidad_objetivo)) ? true : false;
+    double dist_previa = 9999999999999;
     
     /*if (hasArrived)
     {
@@ -219,6 +224,10 @@ unsigned int ompl::auvplanning::AUV2StepPIDControlSampler::propagation(control::
         }*/
 
         hasArrived = (fabs(pre_errorsurge) < rango_dist_objetivo && fabs(pre_errorz) < rango_profundidad_objetivo) ? true : false;
+        
+        hasArrived = (hasArrived || dist_previa < dist_actual) ? true : false;
+        dist_previa = dist_actual;
+
         tiempo++;
 
         //if(interpolate) istates.add(stateTemp);

@@ -64,8 +64,8 @@ void Main::AUVRobotSetup()
   
     robot->getSimpleSetup().getSpaceInformation()->setStateValidityCheckingResolution(config["general/checkResolution"].as<double>());
 
-    robot->getSimpleSetup().getStateSpace()->registerProjection("AUVProjection", auvplanning::allocGeometricStateProjector(robot->getSimpleSetup().getStateSpace(), robot->getGeometricComponentStateSpace(),
-    								robot->getGeometricStateExtractor()));
+    base::ProjectionEvaluatorPtr auvProjection = auvplanning::allocGeometricStateProjector(robot->getSimpleSetup().getStateSpace(), robot->getGeometricComponentStateSpace(),robot->getGeometricStateExtractor());
+    robot->getSimpleSetup().getStateSpace()->registerProjection("AUVProjection", auvProjection);
 
 }
 
@@ -143,6 +143,19 @@ void Main::AUVRobotDemo()
 	}
 
 	robot->setup(getTypeControlSampler(config["general/controlSampler"].as<std::string>()));
+
+	base::ProjectionEvaluatorPtr auvProjection = robot->getSimpleSetup().getStateSpace()->getProjection("AUVProjection");
+	base::RealVectorBounds bounds_ = static_cast<base::RealVectorStateSpace*>(robot->getGeometricComponentStateSpace().get())->getBounds();
+    const std::vector<double> b = bounds_.getDifference();
+    printf("Tamaño del geometric state space: %f, %f, %f\n", b[0], b[1], b[2]);
+    double numCells = config["general/numberOfCellsInProjectionDimension"].as<double>();
+    std::vector<double> cellSizes(3);
+    cellSizes[0] = b[0] / numCells;
+    cellSizes[1] = b[1] / numCells;
+    cellSizes[2] = b[2] / numCells;
+    printf("Tamaño de cellSizes: %f, %f, %f\n", cellSizes[0], cellSizes[1], cellSizes[2]);
+    auvProjection->setCellSizes(cellSizes);
+
 
 	robot->getSimpleSetup().getPlanner()->printProperties(std::cout);
 	robot->getSimpleSetup().getPlanner()->printSettings(std::cout);
@@ -274,11 +287,23 @@ void Main::AUVRobotBenchmark()
 
     robot->setup(getTypeControlSampler(config["general/controlSampler"].as<std::string>()));
 
+	base::ProjectionEvaluatorPtr auvProjection = robot->getSimpleSetup().getStateSpace()->getProjection("AUVProjection");
+	base::RealVectorBounds bounds_ = static_cast<base::RealVectorStateSpace*>(robot->getGeometricComponentStateSpace().get())->getBounds();
+    const std::vector<double> bounds = bounds_.getDifference();
+    double numCells = config["general/numberOfCellsInProjectionDimension"].as<double>();
+    std::vector<double> cellSizes(3);
+    cellSizes[0] = bounds[0] / numCells;
+    cellSizes[1] = bounds[1] / numCells;
+    cellSizes[2] = bounds[2] / numCells;
+    OMPL_INFORM("Projection cell sizes: %f, %f, %f\n", cellSizes[0], cellSizes[1], cellSizes[2]);
+    auvProjection->setCellSizes(cellSizes);
+
     tools::Benchmark b(robot->getSimpleSetup(), config["benchmark/testname"].as<std::string>());
     //b.addExperimentParameter("save_paths", "INTEGER", "10")
     b.addExperimentParameter("num_dofs", "INTEGER", "8");
 	b.addExperimentParameter("muestreador_de_control", "STRING", config["general/controlSampler"].as<std::string>());
 	b.addExperimentParameter("funcion_de_distancia", "STRING", config["general/distanceFunction"].as<std::string>());
+    b.addExperimentParameter("number of cells per dimention in the projection", "INTEGER", config["general/numberOfCellsInProjectionDimension"].as<std::string>());
     b.addExperimentParameter("distance_to_goal_to_be_considered_achieved", "REAL", config["general/distanceToGoal"].as<std::string>());
     b.addExperimentParameter("propagation_step_size", "INTEGER", config["general/propagationStepSize"].as<std::string>());
     b.addExperimentParameter("minimum_control_duration", "INTEGER", config["general/minControlDuration"].as<std::string>());
@@ -506,6 +531,7 @@ void Main::controlAUV(){
 
 	robot->getSimpleSetup().getSpaceInformation()->freeState(state);
 	robot->getSimpleSetup().getSpaceInformation()->freeState(reference);
+	robot->getSimpleSetup().getSpaceInformation()->freeControl(rctrl);
 }
 
 void Main::checkState()

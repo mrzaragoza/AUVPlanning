@@ -53,7 +53,7 @@ namespace ompl
 
             const double                    rango_dist_objetivo = 0.5;
             const double                    rango_profundidad_objetivo = 0.5;
-            const double                    rango_yaw_objetivo = 0.005;
+            const double                    rango_yaw_objetivo = 0.001;
 
             double                          dist_inicial = 0;
 
